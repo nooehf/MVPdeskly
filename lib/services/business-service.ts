@@ -3,6 +3,7 @@ import {
   FACTURAS_DB,
   GASTOS_DB,
   PRODUCTOS_Y_SERVICIOS,
+  ALBARANES_OBRA_DB,
   NORMATIVAS_RAG_DB,
   MOCK_CALENDAR_EVENTS,
   MOCK_HUBSPOT_DEALS,
@@ -10,6 +11,7 @@ import {
   Factura,
   GastoCoste,
   ProductoServicio,
+  AlbaranObra,
   NormativaRAG,
   MetricasFinancieras,
 } from '../data/business-database';
@@ -21,35 +23,42 @@ const facturasEnMemoria = [...FACTURAS_DB];
 const gastosEnMemoria = [...GASTOS_DB];
 const clientesEnMemoria = [...CLIENTES_DB];
 const productosEnMemoria = [...PRODUCTOS_Y_SERVICIOS];
+const albaranesEnMemoria = [...ALBARANES_OBRA_DB];
 
 /**
- * Calcula y devuelve el resumen ejecutivo de métricas financieras de Deskly.
+ * Calcula y devuelve el resumen ejecutivo de métricas financieras de la constructora.
  */
 export function obtenerResumenFinanciero(): {
   kpis: MetricasFinancieras;
   resumenTexto: string;
   desglosePorCategorias: Record<string, number>;
 } {
-  const mrrTotal = clientesEnMemoria.filter((c) => c.estado === 'Activo').reduce((acc, c) => acc + c.mrr, 0);
-  const arrTotal = mrrTotal * 12;
+  const facturacionMensualMedia = clientesEnMemoria
+    .filter((c) => c.estado === 'Activo')
+    .reduce((acc, c) => acc + c.mrr, 0);
+  const arrTotal = facturacionMensualMedia * 12;
 
   const costesMensualesTotales = gastosEnMemoria.reduce((acc, g) => acc + g.importeMensual, 0);
-  const ebitdaMensual = mrrTotal - costesMensualesTotales;
-  const margenNetoPorcentaje = mrrTotal > 0 ? Number(((ebitdaMensual / mrrTotal) * 100).toFixed(2)) : 0;
-  const margenBrutoPorcentaje = 84.5;
+  const ebitdaMensual = facturacionMensualMedia - costesMensualesTotales;
+  const margenNetoPorcentaje =
+    facturacionMensualMedia > 0
+      ? Number(((ebitdaMensual / facturacionMensualMedia) * 100).toFixed(2))
+      : 0;
+  const margenBrutoPorcentaje = 26.5;
 
-  const cashEnBanco = 185000;
-  const gastoNetoMensual = costesMensualesTotales > mrrTotal ? costesMensualesTotales - mrrTotal : 0;
-  const runwayMeses = gastoNetoMensual > 0 ? Number((cashEnBanco / gastoNetoMensual).toFixed(1)) : 36;
+  const cashEnBanco = 320000;
+  const gastoNetoMensual =
+    costesMensualesTotales > facturacionMensualMedia
+      ? costesMensualesTotales - facturacionMensualMedia
+      : 0;
+  const runwayMeses = gastoNetoMensual > 0 ? Number((cashEnBanco / gastoNetoMensual).toFixed(1)) : 48;
 
-  const facturasPendientesCobroTotal = facturasEnMemoria.filter((f) => f.estado === 'Pendiente').reduce(
-    (acc, f) => acc + f.total,
-    0
-  );
-  const facturasVencidasTotal = facturasEnMemoria.filter((f) => f.estado === 'Vencida').reduce(
-    (acc, f) => acc + f.total,
-    0
-  );
+  const facturasPendientesCobroTotal = facturasEnMemoria
+    .filter((f) => f.estado === 'Pendiente')
+    .reduce((acc, f) => acc + f.total, 0);
+  const facturasVencidasTotal = facturasEnMemoria
+    .filter((f) => f.estado === 'Vencida')
+    .reduce((acc, f) => acc + f.total, 0);
 
   const desglosePorCategorias = gastosEnMemoria.reduce((acc, g) => {
     acc[g.categoria] = (acc[g.categoria] || 0) + g.importeMensual;
@@ -57,31 +66,30 @@ export function obtenerResumenFinanciero(): {
   }, {} as Record<string, number>);
 
   const kpis: MetricasFinancieras = {
-    mrrTotal,
+    mrrTotal: facturacionMensualMedia,
     arrTotal,
-    ingresosMensualesTotales: mrrTotal,
+    ingresosMensualesTotales: facturacionMensualMedia,
     costesMensualesTotales,
     ebitdaMensual,
     margenNetoPorcentaje,
     margenBrutoPorcentaje,
     cashEnBanco,
     runwayMeses,
-    cacPromedio: 1450,
-    ltvPromedio: 28900,
-    churnRateMensual: 1.2,
+    cacPromedio: 3200,
+    ltvPromedio: 145000,
+    churnRateMensual: 0.5,
     facturasPendientesCobroTotal,
     facturasVencidasTotal,
   };
 
   const resumenTexto = `
-- **MRR (Ingresos Recurrentes Mensuales)**: €${mrrTotal.toLocaleString('es-ES')} / mes
-- **ARR (Anualizado)**: €${arrTotal.toLocaleString('es-ES')} / año
-- **Costes Operativos Mensuales**: €${costesMensualesTotales.toLocaleString('es-ES')} / mes
-- **EBITDA / Beneficio Neto Operativo**: €${ebitdaMensual.toLocaleString('es-ES')} / mes (Margen neto: ${margenNetoPorcentaje}%)
+- **Facturación Mensual Media**: €${facturacionMensualMedia.toLocaleString('es-ES')} / mes
+- **Volumen de Contratación Anual (ARR)**: €${arrTotal.toLocaleString('es-ES')} / año
+- **Costes Operativos Mensuales de Construcción**: €${costesMensualesTotales.toLocaleString('es-ES')} / mes
+- **EBITDA / Margen Operativo**: €${ebitdaMensual.toLocaleString('es-ES')} / mes (Margen neto: ${margenNetoPorcentaje}%)
 - **Tesorería / Cash en Banco**: €${cashEnBanco.toLocaleString('es-ES')}
-- **Runway Estimado**: ${runwayMeses >= 36 ? 'Más de 36 meses (Flujo de caja positivo)' : `${runwayMeses} meses`}
-- **Facturas Pendientes de Cobro**: €${facturasPendientesCobroTotal.toLocaleString('es-ES')}
-- **Facturas Vencidas / En mora**: €${facturasVencidasTotal.toLocaleString('es-ES')}
+- **Certificaciones Pendientes de Cobro**: €${facturasPendientesCobroTotal.toLocaleString('es-ES')}
+- **Facturas / Pagarés Vencidos**: €${facturasVencidasTotal.toLocaleString('es-ES')}
 `.trim();
 
   return {
@@ -92,7 +100,7 @@ export function obtenerResumenFinanciero(): {
 }
 
 /**
- * Consulta facturas emitidas por estado, cliente o fechas.
+ * Consulta facturas y certificaciones emitidas por estado, cliente o fechas.
  */
 export function consultarFacturas(filtro?: {
   estado?: 'Pagada' | 'Pendiente' | 'Vencida' | 'todas';
@@ -128,16 +136,16 @@ export function consultarFacturas(filtro?: {
 }
 
 /**
- * Consulta y desglose de costes y gastos operativos.
+ * Consulta y desglose de costes y gastos operativos de construcción.
  */
 export function consultarCostesYGastos(filtro?: {
   categoria?:
-    | 'Nominas_y_Personal'
-    | 'Infraestructura_Cloud'
-    | 'Software_y_SaaS'
-    | 'Oficina_y_Suministros'
-    | 'Marketing_y_Ventas'
-    | 'Legal_y_Gestoria'
+    | 'Nominas_y_Cuadrillas'
+    | 'Maquinaria_y_Gruas'
+    | 'Materiales_y_Acopios'
+    | 'Subcontratas_e_Instalaciones'
+    | 'Seguridad_PRL_y_Casetas'
+    | 'Software_Tecnico_y_Licencias'
     | 'todas';
 }): {
   totalMensual: number;
@@ -151,14 +159,13 @@ export function consultarCostesYGastos(filtro?: {
   }
 
   const totalMensual = resultado.reduce((acc, g) => acc + g.importeMensual, 0);
-  const totalGlobal = gastosEnMemoria.reduce((acc, g) => acc + g.importeMensual, 0);
+  const sumaTotalEmpresa = gastosEnMemoria.reduce((acc, g) => acc + g.importeMensual, 0);
 
-  const distribucionPorcentaje: Record<string, string> = {};
-  const categoriasUnicas = Array.from(new Set(gastosEnMemoria.map((g) => g.categoria)));
-  for (const cat of categoriasUnicas) {
-    const subtotal = gastosEnMemoria.filter((g) => g.categoria === cat).reduce((acc, g) => acc + g.importeMensual, 0);
-    distribucionPorcentaje[cat] = `${((subtotal / totalGlobal) * 100).toFixed(1)}% (€${subtotal.toLocaleString('es-ES')})`;
-  }
+  const distribucionPorcentaje = resultado.reduce((acc, g) => {
+    const pct = sumaTotalEmpresa > 0 ? ((g.importeMensual / sumaTotalEmpresa) * 100).toFixed(1) : '0';
+    acc[g.categoria] = `${pct}%`;
+    return acc;
+  }, {} as Record<string, string>);
 
   return {
     totalMensual: Number(totalMensual.toFixed(2)),
@@ -168,7 +175,7 @@ export function consultarCostesYGastos(filtro?: {
 }
 
 /**
- * Consulta la cartera de clientes de Deskly.
+ * Consulta la cartera de clientes y promociones activas.
  */
 export function consultarCarteraClientes(filtro?: {
   query?: string;
@@ -190,7 +197,7 @@ export function consultarCarteraClientes(filtro?: {
   }
 
   if (filtro?.query) {
-    const q = filtro.query.toLowerCase().trim();
+    const q = filtro.query.toLowerCase();
     resultado = resultado.filter(
       (c) =>
         c.nombreEmpresa.toLowerCase().includes(q) ||
@@ -210,125 +217,107 @@ export function consultarCarteraClientes(filtro?: {
 }
 
 /**
- * Analiza la rentabilidad y relación comercial de un cliente concreto.
+ * Analiza la rentabilidad de una obra o cliente promotor.
  */
-export function analizarRentabilidadCliente(identificador: string): {
-  encontrado: boolean;
-  cliente?: Cliente;
-  facturasHistoricas?: Factura[];
-  costeEstimadoSoporteServicio?: number;
-  margenBeneficioEstimado?: string;
-  diagnostico?: string;
-} {
-  const q = identificador.toLowerCase().trim();
+export function analizarRentabilidadCliente(identificador: string) {
+  const q = identificador.toLowerCase();
   const cliente = clientesEnMemoria.find(
     (c) =>
       c.id.toLowerCase() === q ||
       c.nombreEmpresa.toLowerCase().includes(q) ||
-      c.contactoPrincipal.toLowerCase().includes(q)
+      c.cif.toLowerCase().includes(q)
   );
 
   if (!cliente) {
     return {
       encontrado: false,
-      diagnostico: `No se encontró ningún cliente que coincida con "${identificador}".`,
+      mensaje: `No se encontró ningún cliente o promoción coincidente con "${identificador}".`,
     };
   }
 
   const facturasCliente = facturasEnMemoria.filter((f) => f.clienteId === cliente.id);
-  const totalFacturado = facturasCliente.reduce((acc, f) => acc + f.baseImponible, 0);
-
-  const costeServicioMensual =
-    cliente.planSuscripcion === 'Custom'
-      ? 450
-      : cliente.planSuscripcion === 'Enterprise'
-      ? 280
-      : cliente.planSuscripcion === 'Growth'
-      ? 120
-      : 45;
-
-  const margenMensual = cliente.mrr - costeServicioMensual;
-  const porcentajeMargen = ((margenMensual / cliente.mrr) * 100).toFixed(1);
-
-  let diagnostico = '';
-  if (cliente.estado === 'En Riesgo') {
-    diagnostico = `⚠️ ALERTA: El cliente está clasificado en 'En Riesgo'. NPS actual: ${cliente.nps}/10. Requiere atención inmediata del gestor ${cliente.gestorCuenta}.`;
-  } else if (cliente.nps >= 9) {
-    diagnostico = `🌟 EXCELENTE: Cuenta muy fidelizada y de alta satisfacción (NPS ${cliente.nps}/10). Candidato ideal para testimonios, referidos o upselling.`;
-  } else {
-    diagnostico = `Cuenta estable y operativa con gestor asignado: ${cliente.gestorCuenta}.`;
-  }
+  const totalFacturado = facturasCliente.reduce((acc, f) => acc + f.total, 0);
+  const facturasPendientes = facturasCliente.filter((f) => f.estado === 'Pendiente');
+  const facturasVencidas = facturasCliente.filter((f) => f.estado === 'Vencida');
 
   return {
     encontrado: true,
-    cliente,
-    facturasHistoricas: facturasCliente,
-    costeEstimadoSoporteServicio: costeServicioMensual,
-    margenBeneficioEstimado: `${porcentajeMargen}% (Margen neto: €${margenMensual}/mes)`,
-    diagnostico,
+    cliente: {
+      id: cliente.id,
+      nombreEmpresa: cliente.nombreEmpresa,
+      cif: cliente.cif,
+      contacto: `${cliente.contactoPrincipal} (${cliente.cargo})`,
+      estado: cliente.estado,
+      nps: `${cliente.nps} / 10`,
+      facturacionTotalAcumulada: `€${cliente.facturacionTotalAcumulada.toLocaleString('es-ES')}`,
+      volumenMensual: `€${cliente.mrr.toLocaleString('es-ES')}`,
+      gestorAsignado: cliente.gestorCuenta,
+      notasTecnicas: cliente.notas,
+    },
+    analisisEconomico: {
+      totalCertificacionesEmitidas: facturasCliente.length,
+      importeCertificadoTotal: `€${totalFacturado.toLocaleString('es-ES')}`,
+      certificacionesPendientesCobro: facturasPendientes.length,
+      certificacionesVencidas: facturasVencidas.length,
+      saludFinanciera:
+        facturasVencidas.length > 0
+          ? '⚠️ RIESGO POR MORA: Existen certificaciones vencidas pendientes de cobro.'
+          : '✅ EXCELENTE: Cuenta al día en pagos y certificaciones aprobadas.',
+    },
+    historicoCertificaciones: facturasCliente.map((f) => ({
+      numero: f.numeroFactura,
+      concepto: f.concepto,
+      importe: `€${f.total.toLocaleString('es-ES')}`,
+      estado: f.estado,
+      emision: f.fechaEmision,
+      vencimiento: f.fechaVencimiento,
+    })),
   };
 }
 
-// -------------------------------------------------------------
-// FUNCIONES OPERATIVAS Y DE EJECUCIÓN (ESCRITURA / AGENDAMIENTO)
-// -------------------------------------------------------------
-
 /**
- * Agenda y confirma una nueva reunión o evento en el calendario.
+ * Agenda y confirma una nueva visita técnica o reunión en Google Calendar.
  */
 export function agendarNuevoEventoCalendario(params: {
   titulo: string;
-  inicio: string;
+  inicio?: string;
   fin?: string;
   descripcion?: string;
   asistentes?: string[];
   ubicacion?: string;
 }) {
-  const eventId = `cal-evt-${Date.now()}`;
-  const ubicacion = params.ubicacion || 'Google Calendar';
-
-  // Si no se especifica fin, sumar 45 minutos por defecto
-  const inicioDate = new Date(params.inicio || Date.now());
-  const finDate = params.fin ? new Date(params.fin) : new Date(inicioDate.getTime() + 45 * 60000);
+  const inicioFecha = params.inicio ? new Date(params.inicio) : new Date(Date.now() + 86400000);
+  const finFecha = params.fin ? new Date(params.fin) : new Date(inicioFecha.getTime() + 45 * 60000);
 
   const nuevoEvento = {
-    id: eventId,
-    titulo: params.titulo || 'Reunión Operativa Deskly',
-    descripcion: params.descripcion || 'Reunión agendada en Deskly',
-    inicio: inicioDate.toISOString(),
-    fin: finDate.toISOString(),
-    ubicacion: ubicacion,
-    estado: 'confirmado',
-    asistentes: params.asistentes || ['usuario@empresa.com'],
+    id: `evt-${Date.now()}`,
+    summary: params.titulo,
+    start: { dateTime: inicioFecha.toISOString() },
+    end: { dateTime: finFecha.toISOString() },
+    description: params.descripcion || 'Visita técnica / reunión de seguimiento de obra.',
+    location: params.ubicacion || 'Oficina Técnica / Caseta de Obra',
+    attendees: (params.asistentes || []).map((email) => ({ email })),
   };
 
   eventosEnMemoria.unshift(nuevoEvento);
 
   return {
     success: true,
-    mensaje: `✅ Evento agendado y confirmado en Google Calendar.`,
-    evento: nuevoEvento,
-    detalles: {
-      titulo: nuevoEvento.titulo,
-      fechaHoraInicio: inicioDate.toLocaleString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      fechaHoraFin: finDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      ubicacion: ubicacion,
-      asistentesNotificados: nuevoEvento.asistentes,
-      idCalendario: eventId,
-      recordatorio: 'Activado recordatorio en Google Calendar.',
+    mensaje: `✅ Visita técnica / evento agendado exitosamente en Google Calendar.`,
+    evento: {
+      id: nuevoEvento.id,
+      titulo: nuevoEvento.summary,
+      inicio: inicioFecha.toLocaleString('es-ES', { timeZone: 'Europe/Madrid' }),
+      fin: finFecha.toLocaleString('es-ES', { timeZone: 'Europe/Madrid' }),
+      ubicacion: nuevoEvento.location,
+      asistentes: nuevoEvento.attendees.map((a) => a.email),
+      descripcion: nuevoEvento.description,
     },
   };
 }
 
 /**
- * Crea o actualiza un contacto en el CRM de Deskly / HubSpot.
+ * Crea o actualiza un contacto en el CRM.
  */
 export function crearOActualizarContactoCRM(params: {
   nombreCompleto: string;
@@ -336,45 +325,44 @@ export function crearOActualizarContactoCRM(params: {
   telefono?: string;
   empresa?: string;
   cargo?: string;
-  sector?: string;
 }) {
-  const contactId = `crm-cnt-${Date.now()}`;
-  const nuevoContacto = {
-    id: contactId,
-    nombreCompleto: params.nombreCompleto,
+  const contacto = {
+    id: `cnt-${Date.now()}`,
+    name: params.nombreCompleto,
     email: params.email,
-    telefono: params.telefono || '+34 600 000 000',
-    etapaCicloDeVida: 'Lead Calificado (SQL)',
-    estadoLead: 'Asignado a Ventas | Contactado por IA',
-    empresa: params.empresa || 'Empresa B2B',
+    phone: params.telefono || '+34 910 000 000',
+    company: params.empresa || 'Empresa Constructora / Promotora',
+    jobtitle: params.cargo || 'Responsable Técnico',
   };
 
   return {
     success: true,
     mensaje: `✅ Contacto guardado y sincronizado en el CRM.`,
-    contacto: nuevoContacto,
+    contacto,
   };
 }
 
 /**
- * Registra una nueva oportunidad o deal comercial en el CRM.
+ * Registra una nueva oportunidad de licitación u obra en el CRM.
  */
 export function crearNuevoDealCRM(params: {
   nombreNegocio: string;
   monto: string | number;
   etapa?: string;
   pipeline?: string;
-  fechaCierre?: string;
 }) {
-  const dealId = `deal-${Date.now()}`;
-  const montoFormateado = typeof params.monto === 'number' ? `€${params.monto.toLocaleString('es-ES')}` : params.monto;
+  const montoNumerico =
+    typeof params.monto === 'number'
+      ? params.monto
+      : Number(String(params.monto).replace(/[^0-9.-]+/g, '')) || 50000;
+
   const nuevoDeal = {
-    id: dealId,
-    nombreNegocio: params.nombreNegocio,
-    monto: montoFormateado,
-    etapa: params.etapa || 'Propuesta Comercial Enviada',
-    pipeline: params.pipeline || 'Enterprise Sales',
-    fechaCierre: params.fechaCierre || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    id: `deal-${Date.now()}`,
+    dealname: params.nombreNegocio,
+    amount: String(montoNumerico),
+    dealstage: params.etapa || 'Estudio de Viabilidad y Mediciones',
+    pipeline: params.pipeline || 'Licitaciones y Obras',
+    fechaCierre: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0],
     fechaCreacion: new Date().toISOString().split('T')[0],
   };
 
@@ -382,22 +370,22 @@ export function crearNuevoDealCRM(params: {
 
   return {
     success: true,
-    mensaje: `✅ Oportunidad comercial registrada con éxito en el pipeline de ventas.`,
+    mensaje: `✅ Oportunidad comercial registrada con éxito en el pipeline de proyectos.`,
     deal: nuevoDeal,
   };
 }
 
 /**
- * Emite y registra una nueva factura con desglose fiscal.
+ * Emite y registra una nueva factura o certificación con desglose fiscal.
  */
 export function emitirNuevaFactura(params: {
   nombreCliente: string;
   baseImponible: number;
   concepto: string;
-  metodoPago?: 'Transferencia Bancaria' | 'Domiciliación SEPA' | 'Tarjeta Stripe';
+  metodoPago?: 'Transferencia Bancaria' | 'Domiciliación SEPA' | 'Pagaré a 60 días';
   diasVencimiento?: number;
 }) {
-  const numeroFactura = `FAC-2025-${String(facturasEnMemoria.length + 80).padStart(3, '0')}`;
+  const numeroFactura = `CERT-2025-${String(facturasEnMemoria.length + 42).padStart(3, '0')}`;
   const ivaPorcentaje = 21;
   const ivaImporte = Number((params.baseImponible * 0.21).toFixed(2));
   const total = Number((params.baseImponible + ivaImporte).toFixed(2));
@@ -426,22 +414,14 @@ export function emitirNuevaFactura(params: {
 
   return {
     success: true,
-    mensaje: `✅ Factura ${numeroFactura} generada y registrada en el sistema contable.`,
+    mensaje: `✅ Certificación/Factura ${numeroFactura} generada y registrada en el sistema contable de la obra.`,
     factura: nuevaFactura,
   };
 }
 
-export function obtenerEventosCalendarioMock() {
-  return eventosEnMemoria;
-}
-
-export function obtenerDealsHubspotMock() {
-  return dealsEnMemoria;
-}
-
 /**
-  * Consulta el catálogo de productos y servicios que comercializa la empresa.
-  */
+ * Consulta el catálogo de partidas y unidades de obra presupuestadas.
+ */
 export function consultarCatalogoProductos(params?: {
   categoria?: string;
   soloMasVendidos?: boolean;
@@ -469,31 +449,102 @@ export function consultarCatalogoProductos(params?: {
     );
   }
 
-  const productoEstrella = productosEnMemoria.find((p) => p.esMasVendido) || productosEnMemoria[0];
+  const partidaEstrella = productosEnMemoria.find((p) => p.esMasVendido) || productosEnMemoria[0];
 
   return {
-    totalProductos: resultado.length,
-    productoMasVendido: {
-      nombre: productoEstrella.nombre,
-      sku: productoEstrella.sku,
-      precioUnitarioSinIva: `€${productoEstrella.precioUnitario}`,
-      precioConIva: `€${productoEstrella.precioConIva}`,
-      unidadesVendidas: productoEstrella.unidadesVendidasTotal,
-      facturacionAcumulada: `€${productoEstrella.facturacionTotalAcumulada.toLocaleString('es-ES')}`,
-      margen: `${productoEstrella.margenBeneficioPorcentaje}%`,
-      descripcion: productoEstrella.descripcion,
+    totalPartidas: resultado.length,
+    partidaMasPresupuestada: {
+      nombre: partidaEstrella.nombre,
+      sku: partidaEstrella.sku,
+      precioUnitarioSinIva: `€${partidaEstrella.precioUnitario}`,
+      precioConIva: `€${partidaEstrella.precioConIva}`,
+      unidadesEjecutadas: partidaEstrella.unidadesVendidasTotal,
+      facturacionAcumulada: `€${partidaEstrella.facturacionTotalAcumulada.toLocaleString('es-ES')}`,
+      margen: `${partidaEstrella.margenBeneficioPorcentaje}%`,
+      descripcion: partidaEstrella.descripcion,
     },
-    productos: resultado,
+    partidas: resultado,
   };
 }
 
 /**
- * Sistema RAG: Consulta la base de conocimiento y normativas departamentales
- * utilizando búsqueda por departamento, categoría o términos clave.
+ * Consulta y gestión de albaranes de materiales y obras.
+ */
+export function consultarAlbaranesObra(params?: {
+  obra?: string;
+  proveedor?: string;
+  estado?: string;
+}) {
+  let resultado = [...albaranesEnMemoria];
+
+  if (params?.obra) {
+    const q = params.obra.toLowerCase();
+    resultado = resultado.filter((a) => a.obraDestino.toLowerCase().includes(q));
+  }
+
+  if (params?.proveedor) {
+    const q = params.proveedor.toLowerCase();
+    resultado = resultado.filter((a) => a.proveedor.toLowerCase().includes(q));
+  }
+
+  if (params?.estado) {
+    resultado = resultado.filter((a) => a.estado.toLowerCase() === params.estado!.toLowerCase());
+  }
+
+  const importeTotal = resultado.reduce((acc, a) => acc + a.importeTotal, 0);
+
+  return {
+    totalAlbaranes: resultado.length,
+    importeTotal: `€${importeTotal.toLocaleString('es-ES')}`,
+    albaranes: resultado,
+  };
+}
+
+/**
+ * Registra y procesa un nuevo albarán subido mediante foto u OCR.
+ */
+export function registrarAlbaranObra(params: {
+  numeroAlbaran: string;
+  proveedor: string;
+  obraDestino: string;
+  material: string;
+  cantidad: string;
+  importeTotal: number;
+  firmadoPor?: string;
+  observaciones?: string;
+}) {
+  const nuevoAlbaran: AlbaranObra = {
+    id: `alb-${Date.now()}`,
+    numeroAlbaran: params.numeroAlbaran,
+    proveedor: params.proveedor,
+    cifProveedor: 'B-PROV-' + Math.floor(100000 + Math.random() * 900000),
+    obraDestino: params.obraDestino,
+    fechaEntrega: new Date().toISOString().split('T')[0],
+    material: params.material,
+    cantidad: params.cantidad,
+    precioUnitario: params.importeTotal > 0 ? Number((params.importeTotal / 1).toFixed(2)) : 0,
+    importeTotal: params.importeTotal,
+    estado: 'Recibido_Conforme',
+    firmadoPor: params.firmadoPor || 'Encargado de Obra',
+    observaciones: params.observaciones || 'Albarán digitalizado mediante captura fotográfica Deskly.',
+  };
+
+  albaranesEnMemoria.unshift(nuevoAlbaran);
+
+  return {
+    success: true,
+    mensaje: `✅ Albarán ${nuevoAlbaran.numeroAlbaran} registrado, cotejado con el presupuesto de obra y archivado con éxito.`,
+    albaran: nuevoAlbaran,
+  };
+}
+
+/**
+ * Sistema RAG: Consulta la base de conocimiento y normativas de la constructora
+ * para los 4 departamentos (Estudio, Obras, Proyectos, RRHH).
  */
 export function consultarNormativasRAG(params?: {
   consulta?: string;
-  departamento?: 'marketing' | 'contabilidad' | 'ventas' | 'produccion' | 'rrhh' | string;
+  departamento?: 'estudio' | 'obras' | 'proyectos' | 'rrhh' | string;
   categoria?: string;
 }) {
   let documentos = [...NORMATIVAS_RAG_DB];
@@ -524,7 +575,6 @@ export function consultarNormativasRAG(params?: {
     documentos = documentos.filter((doc) => {
       const textoCompleto = `${doc.titulo} ${doc.codigo} ${doc.categoria} ${doc.resumen} ${doc.contenidoCompleto} ${doc.tags.join(' ')} ${doc.puntosClave.join(' ')}`.toLowerCase();
 
-      // Coincidencia directa de la frase o de al menos un token significativo
       if (textoCompleto.includes(q)) return true;
       return tokens.some((token) => textoCompleto.includes(token));
     });
@@ -545,4 +595,10 @@ export function consultarNormativasRAG(params?: {
   };
 }
 
+export function obtenerEventosCalendarioMock() {
+  return eventosEnMemoria;
+}
 
+export function obtenerDealsHubspotMock() {
+  return dealsEnMemoria;
+}

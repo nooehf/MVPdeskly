@@ -1,7 +1,8 @@
 /**
- * Base de Datos Integral para Deskly MVP
- * Contiene datos realistas de Clientes, Contabilidad (Facturas), Costes y Gastos Operativos,
- * y Métricas Financieras / KPIs.
+ * Base de Datos Integral para Deskly - Empresa Constructora & Reformas Integrales
+ * Contiene datos realistas de Clientes (Promotoras, Particulares, Sector Público),
+ * Facturas y Certificaciones de Obra, Costes Operativos de Construcción (Maquinaria, Subcontratas, Cuadrillas),
+ * Partidas de Presupuesto / Unidades de Obra, Albaranes de Materiales y Base de Conocimiento RAG.
  */
 
 export interface Cliente {
@@ -14,8 +15,8 @@ export interface Cliente {
   telefono: string;
   sector: string;
   planSuscripcion: 'Starter' | 'Growth' | 'Enterprise' | 'Custom';
-  mrr: number; // Ingresos recurrentes mensuales en Euros (€)
-  arr: number; // Ingresos anuales (€)
+  mrr: number; // Facturación mensual recurrente / mantenimiento (€)
+  arr: number; // Facturación anual (€)
   fechaAlta: string;
   estado: 'Activo' | 'En Riesgo' | 'Pausado' | 'En Onboarding';
   nps: number; // Net Promoter Score (1 a 10)
@@ -32,11 +33,11 @@ export interface Factura {
   fechaEmision: string;
   fechaVencimiento: string;
   baseImponible: number; // €
-  ivaPorcentaje: number; // 21%
+  ivaPorcentaje: number; // 21% general (o 10% en reformas de vivienda habitual)
   ivaImporte: number;
   total: number; // €
   estado: 'Pagada' | 'Pendiente' | 'Vencida';
-  metodoPago: 'Transferencia Bancaria' | 'Domiciliación SEPA' | 'Tarjeta Stripe';
+  metodoPago: 'Transferencia Bancaria' | 'Domiciliación SEPA' | 'Pagaré a 60 días';
   concepto: string;
   fechaPagoReal?: string;
 }
@@ -44,12 +45,12 @@ export interface Factura {
 export interface GastoCoste {
   id: string;
   categoria:
-    | 'Nominas_y_Personal'
-    | 'Infraestructura_Cloud'
-    | 'Software_y_SaaS'
-    | 'Oficina_y_Suministros'
-    | 'Marketing_y_Ventas'
-    | 'Legal_y_Gestoria';
+    | 'Nominas_y_Cuadrillas'
+    | 'Maquinaria_y_Gruas'
+    | 'Materiales_y_Acopios'
+    | 'Subcontratas_e_Instalaciones'
+    | 'Seguridad_PRL_y_Casetas'
+    | 'Software_Tecnico_y_Licencias';
   concepto: string;
   proveedor: string;
   importeMensual: number; // €
@@ -70,739 +71,349 @@ export interface MetricasFinancieras {
   margenBrutoPorcentaje: number;
   cashEnBanco: number;
   runwayMeses: number;
-  cacPromedio: number; // Coste Adquisición Cliente (€)
-  ltvPromedio: number; // Lifetime Value (€)
-  churnRateMensual: number; // %
+  cacPromedio: number;
+  ltvPromedio: number;
+  churnRateMensual: number;
   facturasPendientesCobroTotal: number;
   facturasVencidasTotal: number;
 }
 
+export interface AlbaranObra {
+  id: string;
+  numeroAlbaran: string;
+  proveedor: string;
+  cifProveedor: string;
+  obraDestino: string;
+  fechaEntrega: string;
+  material: string;
+  cantidad: string;
+  precioUnitario: number;
+  importeTotal: number;
+  estado: 'Recibido_Conforme' | 'Pendiente_Validacion' | 'Con_Incidencia';
+  firmadoPor: string;
+  observaciones: string;
+}
+
 // -------------------------------------------------------------
-// 1. CARTERA DE CLIENTES
+// 1. CARTERA DE CLIENTES Y PROMOTORAS
 // -------------------------------------------------------------
 export const CLIENTES_DB: Cliente[] = [
   {
     id: 'cli-001',
-    nombreEmpresa: 'Fintech Solutions Madrid S.L.',
+    nombreEmpresa: 'Promociones Residenciales Mirasierra S.L.',
     cif: 'B87654321',
     contactoPrincipal: 'Carlos Méndez',
-    cargo: 'CTO & Co-Founder',
-    email: 'carlos.mendez@fintechmadrid.io',
+    cargo: 'Director de Promociones',
+    email: 'carlos.mendez@promirasierra.es',
     telefono: '+34 912 345 678',
-    sector: 'Fintech & Banca Digital',
+    sector: 'Promoción Inmobiliaria Residencial',
     planSuscripcion: 'Enterprise',
-    mrr: 4500,
-    arr: 54000,
-    fechaAlta: '2024-03-15',
+    mrr: 12500,
+    arr: 150000,
+    fechaAlta: '2024-02-15',
     estado: 'Activo',
     nps: 9,
-    facturacionTotalAcumulada: 81000,
-    gestorCuenta: 'Elena Gómez',
-    notas: 'Cliente clave de banca abierta. Integración de API completada con éxito. Muy satisfechos.',
+    facturacionTotalAcumulada: 385000,
+    gestorCuenta: 'Elena Gómez (Dpto. Estudio)',
+    notas: 'Promoción de 24 chalets pareados en fase de estructura y cerramientos. Certificaciones mensuales puntuales.',
   },
   {
     id: 'cli-002',
-    nombreEmpresa: 'Logística Iberia Express S.A.',
+    nombreEmpresa: 'Grupo Inmobiliario Castellana Prime S.A.',
     cif: 'A28991234',
     contactoPrincipal: 'Marta Rivas',
-    cargo: 'Directora de Operaciones',
-    email: 'marta.rivas@logisticaiberia.es',
+    cargo: 'Directora de Activos & Obras',
+    email: 'marta.rivas@castellanaprime.com',
     telefono: '+34 933 456 789',
-    sector: 'Transporte y Logística',
+    sector: 'Rehabilitación de Edificios & Oficinas',
     planSuscripcion: 'Enterprise',
-    mrr: 3800,
-    arr: 45600,
-    fechaAlta: '2024-05-01',
+    mrr: 9800,
+    arr: 117600,
+    fechaAlta: '2024-04-10',
     estado: 'Activo',
-    nps: 8,
-    facturacionTotalAcumulada: 60800,
-    gestorCuenta: 'Elena Gómez',
-    notas: 'Utilizan el asistente para automatizar el despacho de rutas y sincronización con almacén.',
+    nps: 10,
+    facturacionTotalAcumulada: 245000,
+    gestorCuenta: 'David Morales (Dpto. Obras)',
+    notas: 'Rehabilitación integral de edificio de oficinas en Paseo de la Castellana 140. Calificación LEED Gold.',
   },
   {
     id: 'cli-003',
-    nombreEmpresa: 'HealthTech Nova',
+    nombreEmpresa: 'Logística & Suelo Industrial San Fernando S.L.',
     cif: 'B98112233',
-    contactoPrincipal: 'Dr. Alejandro Peña',
-    cargo: 'Director Médico y Socio',
-    email: 'apena@healthtechnova.com',
+    contactoPrincipal: 'Javier Navarro',
+    cargo: 'Director Técnico de Infraestructuras',
+    email: 'jnavarro@logisticasanfernando.es',
     telefono: '+34 961 234 567',
-    sector: 'Salud y Telemedicina',
+    sector: 'Naves Industriales y Centros Logísticos',
     planSuscripcion: 'Growth',
-    mrr: 2200,
-    arr: 26400,
-    fechaAlta: '2024-08-10',
+    mrr: 7500,
+    arr: 90000,
+    fechaAlta: '2024-06-01',
     estado: 'Activo',
     nps: 9,
-    facturacionTotalAcumulada: 28600,
-    gestorCuenta: 'David Morales',
-    notas: 'Clínica con 24 médicos conectados para gestión de citas y recordatorios inteligentes.',
+    facturacionTotalAcumulada: 180000,
+    gestorCuenta: 'Elena Gómez (Dpto. Estudio)',
+    notas: 'Construcción de nave logística de 8.500 m² con solera de alta planimetría y muelles de carga.',
   },
   {
     id: 'cli-004',
-    nombreEmpresa: 'Retail Global eCommerce',
+    nombreEmpresa: 'Corporación Inmobiliaria Gran Vía S.L.',
     cif: 'B45678901',
     contactoPrincipal: 'Lucía Santos',
-    cargo: 'Head of Growth',
-    email: 'lucia.santos@retailglobal.com',
+    cargo: 'Head of Architecture & Retail',
+    email: 'lucia.santos@granviacorp.es',
     telefono: '+34 911 887 654',
-    sector: 'eCommerce y Moda',
+    sector: 'Reformas Comerciales y Retail Premium',
     planSuscripcion: 'Growth',
-    mrr: 1900,
-    arr: 22800,
+    mrr: 4500,
+    arr: 54000,
     fechaAlta: '2024-09-01',
     estado: 'En Riesgo',
     nps: 6,
-    facturacionTotalAcumulada: 22800,
-    gestorCuenta: 'David Morales',
-    notas: 'Reportaron baja tasa de adopción interna en agosto. Reunión de éxito programada.',
+    facturacionTotalAcumulada: 68000,
+    gestorCuenta: 'David Morales (Dpto. Obras)',
+    notas: 'Reforma de flag-ship store. Hubo retraso de 1 semana por entrega de carpintería metálica de subcontrata.',
   },
   {
     id: 'cli-005',
-    nombreEmpresa: 'InmoProp Consultores',
+    nombreEmpresa: 'Residencial Los Álamos - Cooperativa de Viviendas',
     cif: 'B82334455',
     contactoPrincipal: 'Fernando Ruiz',
-    cargo: 'Director Comercial',
-    email: 'fernando.ruiz@inmoprop.es',
+    cargo: 'Presidente del Consejo Rector',
+    email: 'fernando.ruiz@cooperativaalamos.es',
     telefono: '+34 954 123 987',
-    sector: 'Inmobiliario y Real Estate',
+    sector: 'Cooperativas de Vivienda',
     planSuscripcion: 'Starter',
-    mrr: 850,
-    arr: 10200,
+    mrr: 3200,
+    arr: 38400,
     fechaAlta: '2024-11-15',
     estado: 'Activo',
-    nps: 10,
-    facturacionTotalAcumulada: 8500,
-    gestorCuenta: 'Elena Gómez',
-    notas: 'Alta satisfacción. Quieren ampliar licencias para 5 nuevos agentes comerciales.',
-  },
-  {
-    id: 'cli-006',
-    nombreEmpresa: 'CyberGuard Security Systems',
-    cif: 'B90123456',
-    contactoPrincipal: 'Javier Navarro',
-    cargo: 'CISO & Co-fundador',
-    email: 'j.navarro@cyberguard.tech',
-    telefono: '+34 910 555 432',
-    sector: 'Ciberseguridad B2B',
-    planSuscripcion: 'Enterprise',
-    mrr: 5200,
-    arr: 62400,
-    fechaAlta: '2024-02-01',
-    estado: 'Activo',
-    nps: 10,
-    facturacionTotalAcumulada: 98800,
-    gestorCuenta: 'David Morales',
-    notas: 'Cliente con mayor ticket promedio. Contrato anual renovado con opción de soporte 24/7.',
-  },
-  {
-    id: 'cli-007',
-    nombreEmpresa: 'Agencia Digital Momentum',
-    cif: 'B76543210',
-    contactoPrincipal: 'Sara Morales',
-    cargo: 'CEO',
-    email: 'sara@momentumbrand.agency',
-    telefono: '+34 932 112 233',
-    sector: 'Marketing y Publicidad',
-    planSuscripcion: 'Growth',
-    mrr: 1650,
-    arr: 19800,
-    fechaAlta: '2024-10-05',
-    estado: 'Activo',
-    nps: 8,
-    facturacionTotalAcumulada: 18150,
-    gestorCuenta: 'Elena Gómez',
-    notas: 'Conectaron su HubSpot y Google Calendar para agendar sesiones con clientes internacionales.',
-  },
-  {
-    id: 'cli-008',
-    nombreEmpresa: 'EduTech Future Academy',
-    cif: 'B81123444',
-    contactoPrincipal: 'Roberto Calvo',
-    cargo: 'Director de Formación',
-    email: 'r.calvo@edutechfuture.com',
-    telefono: '+34 914 990 011',
-    sector: 'Educación y Formación Online',
-    planSuscripcion: 'Starter',
-    mrr: 750,
-    arr: 9000,
-    fechaAlta: '2025-01-10',
-    estado: 'Pausado',
-    nps: 7,
-    facturacionTotalAcumulada: 5250,
-    gestorCuenta: 'David Morales',
-    notas: 'Pausa estacional por periodo de exámenes universitarios. Se reactivan el próximo mes.',
-  },
-  {
-    id: 'cli-009',
-    nombreEmpresa: 'GreenEnergy Renovable',
-    cif: 'A84332211',
-    contactoPrincipal: 'Beatriz Soler',
-    cargo: 'Responsable de Transformación Digital',
-    email: 'bsoler@greenenergy.es',
-    telefono: '+34 963 887 766',
-    sector: 'Energía y Sostenibilidad',
-    planSuscripcion: 'Custom',
-    mrr: 6000,
-    arr: 72000,
-    fechaAlta: '2024-06-20',
-    estado: 'Activo',
     nps: 9,
-    facturacionTotalAcumulada: 90000,
-    gestorCuenta: 'Elena Gómez',
-    notas: 'Contrato corporativo a medida con SLA garantizado del 99.9%. Pago anual por adelantado.',
-  },
-  {
-    id: 'cli-010',
-    nombreEmpresa: 'SaaS Talent Recruiters',
-    cif: 'B89988776',
-    contactoPrincipal: 'Guillermo Alba',
-    cargo: 'Headhunter Principal',
-    email: 'guillermo@saastalent.io',
-    telefono: '+34 919 001 223',
-    sector: 'Recursos Humanos y Headhunting',
-    planSuscripcion: 'Starter',
-    mrr: 950,
-    arr: 11400,
-    fechaAlta: '2025-02-01',
-    estado: 'En Onboarding',
-    nps: 8,
-    facturacionTotalAcumulada: 3800,
-    gestorCuenta: 'David Morales',
-    notas: 'Configurando filtros automáticos de candidatos y sincronización de entrevistas técnicas.',
+    facturacionTotalAcumulada: 42000,
+    gestorCuenta: 'Elena Gómez (Dpto. Estudio)',
+    notas: 'Construcción de 16 viviendas unifamiliares en régimen de cooperativa. Estudio geotécnico validado.',
   },
 ];
 
 // -------------------------------------------------------------
-// 2. CONTABILIDAD Y FACTURACIÓN
+// 2. CERTIFICACIONES Y FACTURAS DE OBRA
 // -------------------------------------------------------------
 export const FACTURAS_DB: Factura[] = [
-  // Facturas del mes actual y reciente
   {
-    id: 'fac-2025-081',
-    numeroFactura: 'FAC-2025-081',
-    clienteId: 'cli-006',
-    nombreCliente: 'CyberGuard Security Systems',
-    fechaEmision: '2025-05-01',
-    fechaVencimiento: '2025-05-30',
-    baseImponible: 5200.0,
-    ivaPorcentaje: 21,
-    ivaImporte: 1092.0,
-    total: 6292.0,
-    estado: 'Pagada',
-    metodoPago: 'Transferencia Bancaria',
-    concepto: 'Suscripción Deskly Enterprise - Mensualidad Mayo 2025',
-    fechaPagoReal: '2025-05-05',
-  },
-  {
-    id: 'fac-2025-082',
-    numeroFactura: 'FAC-2025-082',
+    id: 'fac-2025-091',
+    numeroFactura: 'CERT-2025-041',
     clienteId: 'cli-001',
-    nombreCliente: 'Fintech Solutions Madrid S.L.',
+    nombreCliente: 'Promociones Residenciales Mirasierra S.L.',
     fechaEmision: '2025-05-01',
-    fechaVencimiento: '2025-05-30',
-    baseImponible: 4500.0,
+    fechaVencimiento: '2025-05-31',
+    baseImponible: 48500.0,
     ivaPorcentaje: 21,
-    ivaImporte: 945.0,
-    total: 5445.0,
-    estado: 'Pagada',
-    metodoPago: 'Domiciliación SEPA',
-    concepto: 'Suscripción Deskly Enterprise - Mayo 2025',
-    fechaPagoReal: '2025-05-04',
-  },
-  {
-    id: 'fac-2025-083',
-    numeroFactura: 'FAC-2025-083',
-    clienteId: 'cli-009',
-    nombreCliente: 'GreenEnergy Renovable',
-    fechaEmision: '2025-05-01',
-    fechaVencimiento: '2025-05-15',
-    baseImponible: 6000.0,
-    ivaPorcentaje: 21,
-    ivaImporte: 1260.0,
-    total: 7260.0,
-    estado: 'Pagada',
+    ivaImporte: 10185.0,
+    total: 58685.0,
+    estado: 'Pendiente',
     metodoPago: 'Transferencia Bancaria',
-    concepto: 'Licenciamiento Custom SLA + Soporte Dedicado Mayo 2025',
-    fechaPagoReal: '2025-05-03',
+    concepto: 'Certificación nº 4: Ejecución de Estructura de Hormigón y Forjados Niveles 1-3',
   },
   {
-    id: 'fac-2025-084',
-    numeroFactura: 'FAC-2025-084',
+    id: 'fac-2025-090',
+    numeroFactura: 'CERT-2025-040',
     clienteId: 'cli-002',
-    nombreCliente: 'Logística Iberia Express S.A.',
-    fechaEmision: '2025-05-05',
-    fechaVencimiento: '2025-06-05',
-    baseImponible: 3800.0,
+    nombreCliente: 'Grupo Inmobiliario Castellana Prime S.A.',
+    fechaEmision: '2025-05-01',
+    fechaVencimiento: '2025-05-31',
+    baseImponible: 36200.0,
     ivaPorcentaje: 21,
-    ivaImporte: 798.0,
-    total: 4598.0,
+    ivaImporte: 7602.0,
+    total: 43802.0,
     estado: 'Pendiente',
     metodoPago: 'Transferencia Bancaria',
-    concepto: 'Suscripción Deskly Enterprise - Plan Logística Mayo 2025',
-  },
-  {
-    id: 'fac-2025-085',
-    numeroFactura: 'FAC-2025-085',
-    clienteId: 'cli-003',
-    nombreCliente: 'HealthTech Nova',
-    fechaEmision: '2025-05-08',
-    fechaVencimiento: '2025-06-08',
-    baseImponible: 2200.0,
-    ivaPorcentaje: 21,
-    ivaImporte: 462.0,
-    total: 2662.0,
-    estado: 'Pendiente',
-    metodoPago: 'Tarjeta Stripe',
-    concepto: 'Suscripción Growth + Módulo Telemedicina Mayo 2025',
-  },
-  {
-    id: 'fac-2025-086',
-    numeroFactura: 'FAC-2025-086',
-    clienteId: 'cli-007',
-    nombreCliente: 'Agencia Digital Momentum',
-    fechaEmision: '2025-05-10',
-    fechaVencimiento: '2025-06-10',
-    baseImponible: 1650.0,
-    ivaPorcentaje: 21,
-    ivaImporte: 346.5,
-    total: 1996.5,
-    estado: 'Pendiente',
-    metodoPago: 'Tarjeta Stripe',
-    concepto: 'Plan Growth - 5 puestos comerciales Mayo 2025',
-  },
-  {
-    id: 'fac-2025-087',
-    numeroFactura: 'FAC-2025-087',
-    clienteId: 'cli-004',
-    nombreCliente: 'Retail Global eCommerce',
-    fechaEmision: '2025-04-10',
-    fechaVencimiento: '2025-05-10',
-    baseImponible: 1900.0,
-    ivaPorcentaje: 21,
-    ivaImporte: 399.0,
-    total: 2299.0,
-    estado: 'Vencida',
-    metodoPago: 'Transferencia Bancaria',
-    concepto: 'Suscripción Growth - Abril 2025 (Recordatorio de cobro enviado)',
-  },
-  {
-    id: 'fac-2025-088',
-    numeroFactura: 'FAC-2025-088',
-    clienteId: 'cli-005',
-    nombreCliente: 'InmoProp Consultores',
-    fechaEmision: '2025-05-12',
-    fechaVencimiento: '2025-06-12',
-    baseImponible: 850.0,
-    ivaPorcentaje: 21,
-    ivaImporte: 178.5,
-    total: 1028.5,
-    estado: 'Pagada',
-    metodoPago: 'Tarjeta Stripe',
-    concepto: 'Plan Starter Inmobiliaria Mayo 2025',
-    fechaPagoReal: '2025-05-12',
+    concepto: 'Certificación nº 6: Instalaciones de Climatización VRF y Falsos Techos Acústicos',
   },
   {
     id: 'fac-2025-089',
-    numeroFactura: 'FAC-2025-089',
-    clienteId: 'cli-010',
-    nombreCliente: 'SaaS Talent Recruiters',
-    fechaEmision: '2025-05-14',
-    fechaVencimiento: '2025-06-14',
-    baseImponible: 950.0,
+    numeroFactura: 'CERT-2025-039',
+    clienteId: 'cli-003',
+    nombreCliente: 'Logística & Suelo Industrial San Fernando S.L.',
+    fechaEmision: '2025-04-20',
+    fechaVencimiento: '2025-05-20',
+    baseImponible: 52000.0,
     ivaPorcentaje: 21,
-    ivaImporte: 199.5,
-    total: 1149.5,
-    estado: 'Pendiente',
-    metodoPago: 'Tarjeta Stripe',
-    concepto: 'Plan Starter Recursos Humanos Mayo 2025',
-  },
-  // Facturas de meses anteriores
-  {
-    id: 'fac-2025-070',
-    numeroFactura: 'FAC-2025-070',
-    clienteId: 'cli-001',
-    nombreCliente: 'Fintech Solutions Madrid S.L.',
-    fechaEmision: '2025-04-01',
-    fechaVencimiento: '2025-04-30',
-    baseImponible: 4500.0,
-    ivaPorcentaje: 21,
-    ivaImporte: 945.0,
-    total: 5445.0,
-    estado: 'Pagada',
-    metodoPago: 'Domiciliación SEPA',
-    concepto: 'Suscripción Deskly Enterprise - Abril 2025',
-    fechaPagoReal: '2025-04-05',
-  },
-  {
-    id: 'fac-2025-071',
-    numeroFactura: 'FAC-2025-071',
-    clienteId: 'cli-006',
-    nombreCliente: 'CyberGuard Security Systems',
-    fechaEmision: '2025-04-01',
-    fechaVencimiento: '2025-04-30',
-    baseImponible: 5200.0,
-    ivaPorcentaje: 21,
-    ivaImporte: 1092.0,
-    total: 6292.0,
+    ivaImporte: 10920.0,
+    total: 62920.0,
     estado: 'Pagada',
     metodoPago: 'Transferencia Bancaria',
-    concepto: 'Suscripción Deskly Enterprise - Abril 2025',
-    fechaPagoReal: '2025-04-03',
+    concepto: 'Certificación nº 2: Cimentación Especial y Montaje de Estructura Prefabricada',
+    fechaPagoReal: '2025-05-10',
   },
   {
-    id: 'fac-2025-072',
-    numeroFactura: 'FAC-2025-072',
-    clienteId: 'cli-009',
-    nombreCliente: 'GreenEnergy Renovable',
+    id: 'fac-2025-088',
+    numeroFactura: 'CERT-2025-038',
+    clienteId: 'cli-004',
+    nombreCliente: 'Corporación Inmobiliaria Gran Vía S.L.',
     fechaEmision: '2025-04-01',
     fechaVencimiento: '2025-04-30',
-    baseImponible: 6000.0,
+    baseImponible: 18500.0,
     ivaPorcentaje: 21,
-    ivaImporte: 1260.0,
-    total: 7260.0,
-    estado: 'Pagada',
-    metodoPago: 'Transferencia Bancaria',
-    concepto: 'Licenciamiento Custom SLA Abril 2025',
-    fechaPagoReal: '2025-04-02',
+    ivaImporte: 3885.0,
+    total: 22385.0,
+    estado: 'Vencida',
+    metodoPago: 'Pagaré a 60 días',
+    concepto: 'Certificación final de Demoliciones, Refuerzo Estructural e Instalación Eléctrica',
   },
 ];
 
 // -------------------------------------------------------------
-// 3. COSTES Y GASTOS OPERATIVOS
+// 3. COSTES Y GASTOS OPERATIVOS DE CONSTRUCCIÓN
 // -------------------------------------------------------------
 export const GASTOS_DB: GastoCoste[] = [
-  // 1. Nóminas y Equipo Humano
+  // 1. Nóminas y Cuadrillas de Obra
   {
     id: 'gst-001',
-    categoria: 'Nominas_y_Personal',
-    concepto: 'Nómina Lead Fullstack & AI Engineer',
-    proveedor: 'Personal Interno',
-    importeMensual: 4200.0,
+    categoria: 'Nominas_y_Cuadrillas',
+    concepto: 'Nóminas Oficiales de 1ª, Encofradores y Albañilería (Cuadrilla Directa)',
+    proveedor: 'Personal Propio de Obra',
+    importeMensual: 14500.0,
     frecuencia: 'Mensual',
-    responsable: 'Carlos Vega',
+    responsable: 'Lucía Benítez (RRHH)',
     fechaUltimoPago: '2025-04-30',
     estado: 'Al día',
-    descripcion: 'Desarrollo del Core AI, integraciones de Google Calendar y HubSpot, arquitectura.',
+    descripcion: 'Cuadrilla de 6 oficiales de primera y 3 peones especialistas con tarjeta TPC.',
   },
   {
     id: 'gst-002',
-    categoria: 'Nominas_y_Personal',
-    concepto: 'Nómina Senior Backend Engineer',
-    proveedor: 'Personal Interno',
-    importeMensual: 3800.0,
+    categoria: 'Nominas_y_Cuadrillas',
+    concepto: 'Nóminas Jefes de Obra y Encargados Generales de Proyectos',
+    proveedor: 'Personal Técnico de Proyectos',
+    importeMensual: 9200.0,
     frecuencia: 'Mensual',
-    responsable: 'Lucía Benítez',
+    responsable: 'Lucía Benítez (RRHH)',
     fechaUltimoPago: '2025-04-30',
     estado: 'Al día',
-    descripcion: 'Microservicios, APIs, seguridad y bases de datos Supabase / PostgreSQL.',
+    descripcion: '2 Jefes de Obra (Arquitectos Técnicos) y 1 Encargado General a pie de tajo.',
   },
   {
     id: 'gst-003',
-    categoria: 'Nominas_y_Personal',
-    concepto: 'Nómina Product Designer UI/UX',
-    proveedor: 'Personal Interno',
-    importeMensual: 2900.0,
+    categoria: 'Nominas_y_Cuadrillas',
+    concepto: 'Seguridad Social Régimen General de la Construcción',
+    proveedor: 'Tesorería General de la Seguridad Social',
+    importeMensual: 7800.0,
     frecuencia: 'Mensual',
-    responsable: 'Andrea Sanz',
+    responsable: 'Gestoría Laboral',
     fechaUltimoPago: '2025-04-30',
     estado: 'Al día',
-    descripcion: 'Diseño de interfaces, experiencia de usuario y design system en Figma.',
+    descripcion: 'Cuotas patronales de la plantilla técnica y cuadrillas operativas.',
   },
+
+  // 2. Maquinaria Pesada y Grúas
   {
     id: 'gst-004',
-    categoria: 'Nominas_y_Personal',
-    concepto: 'Nómina Account Executive / Ventas B2B',
-    proveedor: 'Personal Interno',
-    importeMensual: 2600.0,
+    categoria: 'Maquinaria_y_Gruas',
+    concepto: 'Alquiler Grúa Torre 45m y Mantenimiento Preventivo Mensual',
+    proveedor: 'Grúas & Elevación Ibérica S.A.',
+    importeMensual: 2850.0,
     frecuencia: 'Mensual',
-    responsable: 'David Morales',
-    fechaUltimoPago: '2025-04-30',
+    responsable: 'David Morales (Dpto. Obras)',
+    fechaUltimoPago: '2025-05-02',
     estado: 'Al día',
-    descripcion: 'Captación de cuentas Enterprise y atención comercial.',
+    descripcion: 'Grúa torre fija instalada en Residencial Mirasierra con seguro e ITV técnica en regla.',
   },
   {
     id: 'gst-005',
-    categoria: 'Nominas_y_Personal',
-    concepto: 'Seguridad Social y Seguros Laborales',
-    proveedor: 'Tesorería General de la Seguridad Social',
-    importeMensual: 4350.0,
+    categoria: 'Maquinaria_y_Gruas',
+    concepto: 'Alquiler Retroexcavadora Mixta y Dumper Autocargable',
+    proveedor: 'Maquinaria de Movimiento de Tierras Madrid S.L.',
+    importeMensual: 1950.0,
     frecuencia: 'Mensual',
-    responsable: 'Gestoría Externa',
-    fechaUltimoPago: '2025-04-30',
+    responsable: 'David Morales (Dpto. Obras)',
+    fechaUltimoPago: '2025-05-03',
     estado: 'Al día',
-    descripcion: 'Cuotas patronales de la plantilla de 4 empleados.',
+    descripcion: 'Movimiento de tierras, zanjas de saneamiento y carga de escombros en contenedores.',
   },
 
-  // 2. Infraestructura Cloud y Servidores
+  // 3. Materiales y Acopios
   {
     id: 'gst-006',
-    categoria: 'Infraestructura_Cloud',
-    concepto: 'Google AI Studio / Gemini 2.5 Flash API Tokens',
-    proveedor: 'Google Cloud Platform',
-    importeMensual: 420.0,
+    categoria: 'Materiales_y_Acopios',
+    concepto: 'Hormigón Preparado HA-25/B/20/IIa y Morteros de Cemento',
+    proveedor: 'Hormigones & Áridos Madrid S.L.',
+    importeMensual: 11400.0,
     frecuencia: 'Mensual',
-    responsable: 'Carlos Vega',
-    fechaUltimoPago: '2025-05-02',
+    responsable: 'Elena Gómez (Dpto. Estudio / Compras)',
+    fechaUltimoPago: '2025-05-04',
     estado: 'Al día',
-    descripcion: 'Consumo de tokens de inferencia para asistentes y Function Calling.',
+    descripcion: 'Suministro de hormigón en camión cuba con aditivos plastificantes para losas y pilares.',
   },
   {
     id: 'gst-007',
-    categoria: 'Infraestructura_Cloud',
-    concepto: 'Vercel Pro Team Hosting & Edge Functions',
-    proveedor: 'Vercel Inc.',
-    importeMensual: 180.0,
+    categoria: 'Materiales_y_Acopios',
+    concepto: 'Acero Corrugado B-500S Cortado y Doblado para Ferralla',
+    proveedor: 'Ferrallas del Henares S.A.',
+    importeMensual: 6800.0,
     frecuencia: 'Mensual',
-    responsable: 'Carlos Vega',
+    responsable: 'Elena Gómez (Dpto. Estudio)',
     fechaUltimoPago: '2025-05-01',
     estado: 'Al día',
-    descripcion: 'Despliegue de Next.js, CDN global, Serverless functions y dominios SSL.',
+    descripcion: 'Barras y armaduras electrosoldadas según plano de despiece estructural.',
   },
+
+  // 4. Subcontratas e Instalaciones
   {
     id: 'gst-008',
-    categoria: 'Infraestructura_Cloud',
-    concepto: 'Supabase Database Pro & Vector Store',
-    proveedor: 'Supabase Inc.',
-    importeMensual: 120.0,
+    categoria: 'Subcontratas_e_Instalaciones',
+    concepto: 'Subcontrata de Instalaciones de Climatización, Fontanería y Aerotermia',
+    proveedor: 'Instalaciones Técnicas ClimaSol S.L.',
+    importeMensual: 8500.0,
     frecuencia: 'Mensual',
-    responsable: 'Lucía Benítez',
-    fechaUltimoPago: '2025-05-01',
+    responsable: 'David Morales (Dpto. Obras)',
+    fechaUltimoPago: '2025-05-05',
     estado: 'Al día',
-    descripcion: 'PostgreSQL gestionado, pgvector para embeddings y backups diarios.',
+    descripcion: 'Tendido de conductos, suelo radiante y montaje de bombas de calor aerotérmicas.',
   },
+
+  // 5. Seguridad PRL y Casetas de Obra
   {
     id: 'gst-009',
-    categoria: 'Infraestructura_Cloud',
-    concepto: 'Datadog & Sentry Monitoring y Logs',
-    proveedor: 'Datadog Inc.',
-    importeMensual: 140.0,
+    categoria: 'Seguridad_PRL_y_Casetas',
+    concepto: 'Alquiler de Módulos Prefabricados (Caseta de Oficina y Vestuario con Aseos)',
+    proveedor: 'Alco Alquiler de Casetas S.A.',
+    importeMensual: 650.0,
     frecuencia: 'Mensual',
-    responsable: 'Lucía Benítez',
-    fechaUltimoPago: '2025-05-03',
+    responsable: 'Lucía Benítez (RRHH)',
+    fechaUltimoPago: '2025-05-01',
     estado: 'Al día',
-    descripcion: 'Monitorización de errores en producción y métricas de latencia de API.',
+    descripcion: 'Casetas climatizadas para dirección de obra y vestuarios de cuadrillas con duchas.',
   },
-
-  // 3. Software y Herramientas SaaS
   {
     id: 'gst-010',
-    categoria: 'Software_y_SaaS',
-    concepto: 'HubSpot CRM Sales Hub & Operations',
-    proveedor: 'HubSpot Inc.',
-    importeMensual: 450.0,
+    categoria: 'Seguridad_PRL_y_Casetas',
+    concepto: 'Servicio de Prevención Ajeno, Redes Horizontales y EPIs',
+    proveedor: 'Quirónprevención Construcción S.L.',
+    importeMensual: 890.0,
     frecuencia: 'Mensual',
-    responsable: 'David Morales',
-    fechaUltimoPago: '2025-05-04',
+    responsable: 'Lucía Benítez (RRHH)',
+    fechaUltimoPago: '2025-04-28',
     estado: 'Al día',
-    descripcion: 'Licencias de CRM para gestión de pipelines comerciales y sincronización.',
+    descripcion: 'Revisiones médicas anuales, reposición de cascos, arneses y líneas de vida tipo EN 795.',
   },
+
+  // 6. Software Técnico y Licencias
   {
     id: 'gst-011',
-    categoria: 'Software_y_SaaS',
-    concepto: 'Google Workspace Business (Correo, Calendar, Drive)',
-    proveedor: 'Google Ireland',
-    importeMensual: 88.0,
+    categoria: 'Software_Tecnico_y_Licencias',
+    concepto: 'Licencias Presto Presupuestos, BC3 & Revit BIM Autodesk',
+    proveedor: 'RIB Software / Autodesk Inc.',
+    importeMensual: 420.0,
     frecuencia: 'Mensual',
-    responsable: 'Operaciones',
+    responsable: 'Elena Gómez (Dpto. Estudio)',
     fechaUltimoPago: '2025-05-01',
     estado: 'Al día',
-    descripcion: 'Cuentas de correo corporativo para todo el equipo.',
-  },
-  {
-    id: 'gst-012',
-    categoria: 'Software_y_SaaS',
-    concepto: 'Slack Business+ & Figma Professional',
-    proveedor: 'Slack / Figma',
-    importeMensual: 110.0,
-    frecuencia: 'Mensual',
-    responsable: 'Andrea Sanz',
-    fechaUltimoPago: '2025-05-02',
-    estado: 'Al día',
-    descripcion: 'Comunicación interna y prototipado visual en tiempo real.',
-  },
-  {
-    id: 'gst-013',
-    categoria: 'Software_y_SaaS',
-    concepto: 'GitHub Enterprise & Copilot Suite',
-    proveedor: 'GitHub Inc.',
-    importeMensual: 95.0,
-    frecuencia: 'Mensual',
-    responsable: 'Carlos Vega',
-    fechaUltimoPago: '2025-05-01',
-    estado: 'Al día',
-    descripcion: 'Repositorios privados, CI/CD Actions y licencias de IA para desarrollo.',
-  },
-
-  // 4. Oficina y Suministros
-  {
-    id: 'gst-014',
-    categoria: 'Oficina_y_Suministros',
-    concepto: 'Alquiler Despacho Privado Coworking Paseo de la Castellana Madrid',
-    proveedor: 'WeWork España',
-    importeMensual: 1450.0,
-    frecuencia: 'Mensual',
-    responsable: 'Dirección General',
-    fechaUltimoPago: '2025-05-01',
-    estado: 'Al día',
-    descripcion: 'Espacio para 6 puestos fijos, salas de reuniones y recepción.',
-  },
-  {
-    id: 'gst-015',
-    categoria: 'Oficina_y_Suministros',
-    concepto: 'Fibra Óptica Dedicada y Telefonía IP',
-    proveedor: 'Telefónica Empresas',
-    importeMensual: 125.0,
-    frecuencia: 'Mensual',
-    responsable: 'Operaciones',
-    fechaUltimoPago: '2025-05-05',
-    estado: 'Al día',
-    descripcion: 'Conexión simétrica de 1 Gbps y líneas directas para soporte comercial.',
-  },
-
-  // 5. Marketing y Captación de Clientes
-  {
-    id: 'gst-016',
-    categoria: 'Marketing_y_Ventas',
-    concepto: 'Publicidad LinkedIn Ads B2B (Target Directores TI y Ops)',
-    proveedor: 'LinkedIn Ireland',
-    importeMensual: 1200.0,
-    frecuencia: 'Mensual',
-    responsable: 'David Morales',
-    fechaUltimoPago: '2025-05-05',
-    estado: 'Al día',
-    descripcion: 'Generación de leads calificados para demostraciones ejecutivas de Deskly.',
-  },
-  {
-    id: 'gst-017',
-    categoria: 'Marketing_y_Ventas',
-    concepto: 'Google Ads Search (Palabras clave: automatización CRM, asistente IA empresas)',
-    proveedor: 'Google Ireland',
-    importeMensual: 800.0,
-    frecuencia: 'Mensual',
-    responsable: 'David Morales',
-    fechaUltimoPago: '2025-05-04',
-    estado: 'Al día',
-    descripcion: 'Campaña SEM para captura de demanda activa en España y Latam.',
-  },
-
-  // 6. Asesoría Legal, Fiscal y Cumplimiento
-  {
-    id: 'gst-018',
-    categoria: 'Legal_y_Gestoria',
-    concepto: 'Asesoría Fiscal, Contable y Laboral Mensual',
-    proveedor: 'Gestores & Abogados Asociados S.L.',
-    importeMensual: 450.0,
-    frecuencia: 'Mensual',
-    responsable: 'Dirección Financiera',
-    fechaUltimoPago: '2025-05-02',
-    estado: 'Al día',
-    descripcion: 'Cierre contable mensual, presentación de modelos trimestrales de IVA/IRPF y nóminas.',
-  },
-  {
-    id: 'gst-019',
-    categoria: 'Legal_y_Gestoria',
-    concepto: 'Auditoría Continua RGPD y Seguro Ciberriesgo',
-    proveedor: 'Mapfre Empresas / DPO Consulting',
-    importeMensual: 210.0,
-    frecuencia: 'Mensual',
-    responsable: 'Dirección General',
-    fechaUltimoPago: '2025-05-01',
-    estado: 'Al día',
-    descripcion: 'Cumplimiento normativo europeo de protección de datos y póliza de seguridad.',
+    descripcion: 'Software de medición, cuadro de precios unitarios y modelado BIM 3D.',
   },
 ];
 
 // -------------------------------------------------------------
-// 4. MOCKS PARA AGENDA (GOOGLE CALENDAR) Y DEALS (HUBSPOT)
+// 4. PARTIDAS DE PRESUPUESTO / PRECIOS UNITARIOS
 // -------------------------------------------------------------
-export const MOCK_CALENDAR_EVENTS = [
-  {
-    id: 'cal-001',
-    titulo: 'Revisión Financiera y Cierre Mensual Mayo',
-    descripcion: 'Análisis de MRR, facturas pendientes de cobro y presupuesto de costes con la gestoría.',
-    inicio: new Date(new Date().setHours(10, 0, 0, 0)).toISOString(),
-    fin: new Date(new Date().setHours(11, 0, 0, 0)).toISOString(),
-    ubicacion: 'Sala de Juntas Madrid / Google Meet',
-    estado: 'confirmado',
-  },
-  {
-    id: 'cal-002',
-    titulo: 'Demo Ejecutiva con Carlos Méndez (Fintech Solutions)',
-    descripcion: 'Demostración de los nuevos conectores de Deskly con HubSpot y calendario para su equipo directivo.',
-    inicio: new Date(new Date().setHours(12, 30, 0, 0)).toISOString(),
-    fin: new Date(new Date().setHours(13, 15, 0, 0)).toISOString(),
-    ubicacion: 'https://meet.google.com/dsk-demo-live',
-    estado: 'confirmado',
-  },
-  {
-    id: 'cal-003',
-    titulo: 'Sprint Planning Deskly Core AI v2.5',
-    descripcion: 'Planificación de nuevas herramientas de Function Calling y optimización de latencia con Gemini.',
-    inicio: new Date(new Date().setHours(16, 0, 0, 0)).toISOString(),
-    fin: new Date(new Date().setHours(17, 0, 0, 0)).toISOString(),
-    ubicacion: 'Despacho WeWork / Google Meet',
-    estado: 'confirmado',
-  },
-  {
-    id: 'cal-004',
-    titulo: 'Seguimiento de Cuenta: Retail Global eCommerce',
-    descripcion: 'Reunión de éxito de cliente para resolver incidencias de adopción interna.',
-    inicio: new Date(Date.now() + 86400000 * 1).toISOString(), // Mañana
-    fin: new Date(Date.now() + 86400000 * 1 + 3600000).toISOString(),
-    ubicacion: 'Videollamada Google Meet',
-    estado: 'confirmado',
-  },
-  {
-    id: 'cal-005',
-    titulo: 'Comité de Dirección: Estrategia de Expansión Q3',
-    descripcion: 'Evaluación del Runway actual, previsión de tesorería y contratación de nuevos desarrolladores.',
-    inicio: new Date(Date.now() + 86400000 * 3).toISOString(), // En 3 días
-    fin: new Date(Date.now() + 86400000 * 3 + 7200000).toISOString(),
-    ubicacion: 'Oficina Central Madrid',
-    estado: 'confirmado',
-  },
-];
-
-export const MOCK_HUBSPOT_DEALS = [
-  {
-    id: 'deal-001',
-    nombreNegocio: 'Banco Atlántico - Despliegue Deskly Enterprise (50 asientos)',
-    monto: '€48,000 / año',
-    etapa: 'Negociación y Revisión de Contrato',
-    pipeline: 'Enterprise Sales',
-    fechaCierre: '2025-06-30',
-    fechaCreacion: '2025-04-15',
-  },
-  {
-    id: 'deal-002',
-    nombreNegocio: 'Cadena Hotelera Mediterráneo - Asistente de Operaciones y Reservas',
-    monto: '€24,500 / año',
-    etapa: 'Propuesta Económica Enviada',
-    pipeline: 'Enterprise Sales',
-    fechaCierre: '2025-06-15',
-    fechaCreacion: '2025-05-02',
-  },
-  {
-    id: 'deal-003',
-    nombreNegocio: 'Grupo Asegurador Prevención - Integración API CRM Deskly',
-    monto: '€36,000 / año',
-    etapa: 'Demostración Técnica Superada',
-    pipeline: 'Enterprise Sales',
-    fechaCierre: '2025-07-15',
-    fechaCreacion: '2025-04-20',
-  },
-  {
-    id: 'deal-004',
-    nombreNegocio: 'StartUp Studio BCN - Plan Growth (10 licencias)',
-    monto: '€14,400 / año',
-    etapa: 'Cerrado Ganado',
-    pipeline: 'Mid-Market Sales',
-    fechaCierre: '2025-05-08',
-    fechaCreacion: '2025-04-01',
-  },
-];
-
 export interface ProductoServicio {
   id: string;
   nombre: string;
@@ -820,99 +431,144 @@ export interface ProductoServicio {
 
 export const PRODUCTOS_Y_SERVICIOS: ProductoServicio[] = [
   {
-    id: 'prod-001',
-    nombre: 'Aceite de Oliva Virgen Extra Gourmet (Caja 4 Garrafas de 5L)',
-    sku: 'ALM-AOVE-5L4',
-    categoria: 'Aceites y Grasas Vegetales',
-    precioUnitario: 140.0, // €35/garrafa
-    precioConIva: 154.0, // 10% IVA alimentario
-    unidadesVendidasTotal: 1850,
-    facturacionTotalAcumulada: 259000,
-    margenBeneficioPorcentaje: 28.5,
+    id: 'part-001',
+    nombre: 'Instalación Completa de Climatización Aerotérmica con Suelo Radiante / Refrescante',
+    sku: 'OBR-AERO-SRAD',
+    categoria: 'Instalaciones & Eficiencia Energética',
+    precioUnitario: 14500.0, // € por vivienda tipo 120m²
+    precioConIva: 17545.0, // 21% IVA
+    unidadesVendidasTotal: 34,
+    facturacionTotalAcumulada: 493000,
+    margenBeneficioPorcentaje: 24.5,
     esMasVendido: true,
-    stockDisponible: 340,
-    descripcion: 'Nuestro producto estrella más vendido para restaurantes y cadenas hoteleras. AOVE de extracción en frío con acidez < 0.2º, en formato profesional de alta rotación.',
+    descripcion: 'Nuestra partida y servicio técnico estrella más contratado en promociones y reformas de alto standing. Bomba de calor inverter con suelo radiante de alta inercia térmica y termostatos independientes por zona.',
   },
   {
-    id: 'prod-002',
-    nombre: 'Jamón Ibérico de Bellota 100% D.O. Guijuelo (Pieza 8 kg)',
-    sku: 'ALM-JAM-IB100',
-    categoria: 'Ibéricos y Embutidos Curados',
-    precioUnitario: 285.0,
-    precioConIva: 313.5,
-    unidadesVendidasTotal: 420,
-    facturacionTotalAcumulada: 119700,
-    margenBeneficioPorcentaje: 34.0,
+    id: 'part-002',
+    nombre: 'm³ Estructura de Hormigón Armado HA-25 con Acero B-500S en Pilares y Forjados',
+    sku: 'OBR-ESTR-HA25',
+    categoria: 'Estructuras y Cimentación',
+    precioUnitario: 240.0, // €/m³
+    precioConIva: 290.4,
+    unidadesVendidasTotal: 1650,
+    facturacionTotalAcumulada: 396000,
+    margenBeneficioPorcentaje: 18.0,
     esMasVendido: false,
-    stockDisponible: 65,
-    descripcion: 'Jamón de bellota 100% ibérico con más de 36 meses de curación natural. Producto de gama alta muy demandado por catering y restauración gourmet.',
+    descripcion: 'Elaboración y vertido de hormigón con bomba, vibrado mecánico, encofrado recuperable y ferralla homologada.',
   },
   {
-    id: 'prod-003',
-    nombre: 'Queso Manchego Artesano Curado D.O. (Pieza 3,2 kg)',
-    sku: 'ALM-QUE-MANCH',
-    categoria: 'Lácteos y Quesos',
-    precioUnitario: 46.0,
-    precioConIva: 47.84, // 4% IVA superreducido
-    unidadesVendidasTotal: 980,
-    facturacionTotalAcumulada: 45080,
-    margenBeneficioPorcentaje: 31.5,
+    id: 'part-003',
+    nombre: 'm² Tabiquería de Placa de Yeso Laminado (Pladur) con Aislamiento Acústico de Lana de Roca',
+    sku: 'OBR-TAB-PLADUR',
+    categoria: 'Albañilería y Falsos Techos',
+    precioUnitario: 48.0, // €/m²
+    precioConIva: 58.08,
+    unidadesVendidasTotal: 4200,
+    facturacionTotalAcumulada: 201600,
+    margenBeneficioPorcentaje: 26.5,
     esMasVendido: false,
-    stockDisponible: 120,
-    descripcion: 'Elaborado con leche cruda de oveja manchega y curación mínima de 9 meses en bodega.',
+    descripcion: 'Sistema de tabiquería seca autoportante 15+46+15 con aislamiento de lana de roca 40mm para aislamiento de 45 dBA.',
   },
   {
-    id: 'prod-004',
-    nombre: 'Vino Tinto Crianza D.O. Ribera del Duero (Caja 6 botellas 75cl)',
-    sku: 'BEB-VINO-RIB6',
-    categoria: 'Bebidas y Bodega',
-    precioUnitario: 54.0,
-    precioConIva: 65.34, // 21% IVA
-    unidadesVendidasTotal: 1250,
-    facturacionTotalAcumulada: 67500,
-    margenBeneficioPorcentaje: 38.0,
+    id: 'part-004',
+    nombre: 'm² Fachada Ventilada con Cerámica Porcelánica Rectificada y Fijación Oculta',
+    sku: 'OBR-FACH-VENT',
+    categoria: 'Envolvente y Fachadas',
+    precioUnitario: 165.0, // €/m²
+    precioConIva: 199.65,
+    unidadesVendidasTotal: 1800,
+    facturacionTotalAcumulada: 297000,
+    margenBeneficioPorcentaje: 22.0,
     esMasVendido: false,
-    stockDisponible: 210,
-    descripcion: '100% Tempranillo con 12 meses en barrica de roble francés y americano. Ideal para cartas de vinos de restaurantes.',
+    descripcion: 'Subestructura de aluminio anodizado, aislamiento de lana mineral 80mm e impermeabilización transpirable.',
   },
   {
-    id: 'prod-005',
-    nombre: 'Lote Gourmet Anchoas del Cantábrico Serie Oro (Caja 12 latas 120g)',
-    sku: 'ALM-CON-ANCH12',
-    categoria: 'Conservas y Salazones',
-    precioUnitario: 78.0,
-    precioConIva: 85.8,
-    unidadesVendidasTotal: 640,
-    facturacionTotalAcumulada: 49920,
-    margenBeneficioPorcentaje: 42.0,
+    id: 'part-005',
+    nombre: 'm² Solado Porcelánico Rectificado Gran Formato (120x60cm) con Cemento Cola C2TE S1',
+    sku: 'OBR-PAV-PORC',
+    categoria: 'Acabados y Revestimientos',
+    precioUnitario: 62.0, // €/m²
+    precioConIva: 75.02,
+    unidadesVendidasTotal: 2900,
+    facturacionTotalAcumulada: 179800,
+    margenBeneficioPorcentaje: 29.0,
     esMasVendido: false,
-    stockDisponible: 95,
-    descripcion: 'Anchoas sobadas a mano en aceite de oliva virgen extra. Formato hostelería para aperitivos premium.',
+    descripcion: 'Colocación con cuñas autonivelantes, rejuntado fino hidrófugo y sellado perimetral con juntas elásticas.',
   },
   {
-    id: 'prod-006',
-    nombre: 'Arroz Bomba Selección Extra (Saco 25 kg para Hostelería)',
-    sku: 'ALM-ARR-BOMB25',
-    categoria: 'Legumbres, Arroces y Cereales',
-    precioUnitario: 48.0,
-    precioConIva: 49.92,
-    unidadesVendidasTotal: 1100,
-    facturacionTotalAcumulada: 52800,
-    margenBeneficioPorcentaje: 26.0,
+    id: 'part-006',
+    nombre: 'Proyecto de Ejecución Técnica, Dirección Facultativa y Estudio Geotécnico Completo',
+    sku: 'OBR-DIR-TECNIC',
+    categoria: 'Estudio y Oficina Técnica',
+    precioUnitario: 8900.0,
+    precioConIva: 10769.0,
+    unidadesVendidasTotal: 12,
+    facturacionTotalAcumulada: 106800,
+    margenBeneficioPorcentaje: 45.0,
     esMasVendido: false,
-    stockDisponible: 180,
-    descripcion: 'Grano redondo especial para arrocerías y restaurantes. Gran absorción de caldo sin pasarse.',
+    descripcion: 'Cálculo de estructuras, mediciones en formato BC3, visado colegial y plan de control de calidad.',
   },
 ];
 
 // -------------------------------------------------------------
-// BASE DE CONOCIMIENTO RAG (NORMATIVAS, PROTOCOLOS Y SOPS)
+// 5. BASE DE ALBARANES DE MATERIALES Y OBRA
+// -------------------------------------------------------------
+export const ALBARANES_OBRA_DB: AlbaranObra[] = [
+  {
+    id: 'alb-001',
+    numeroAlbaran: 'ALB-2025-8842',
+    proveedor: 'Hormigones & Áridos Madrid S.L.',
+    cifProveedor: 'B82119944',
+    obraDestino: 'Residencial Mirasierra - Fase II (Losa Nivel +2)',
+    fechaEntrega: '2025-05-15',
+    material: 'Hormigón HA-25/B/20/IIa con plastificante',
+    cantidad: '24 m³ (3 camiones cuba)',
+    precioUnitario: 110.0,
+    importeTotal: 2640.0,
+    estado: 'Recibido_Conforme',
+    firmadoPor: 'Antonio Gómez (Encargado de Obra)',
+    observaciones: 'Llegada a las 08:30h. Cono de Abrams 8cm verificado. Probetas tomadas por laboratorio externo.',
+  },
+  {
+    id: 'alb-002',
+    numeroAlbaran: 'ALB-2025-9104',
+    proveedor: 'Ferrallas del Henares S.A.',
+    cifProveedor: 'A28334411',
+    obraDestino: 'Rehabilitación Edificio Castellana 140',
+    fechaEntrega: '2025-05-14',
+    material: 'Armaduras corrugadas B-500S Ø16 y Ø20',
+    cantidad: '4.850 kg',
+    precioUnitario: 1.25,
+    importeTotal: 6062.5,
+    estado: 'Recibido_Conforme',
+    firmadoPor: 'Carlos Vega (Jefe de Obra)',
+    observaciones: 'Descargado con pluma en zona acopio planta baja. Certificado de calidad de acero adjunto.',
+  },
+  {
+    id: 'alb-003',
+    numeroAlbaran: 'ALB-2025-7721',
+    proveedor: 'Pladur & Aislamientos Centro S.L.',
+    cifProveedor: 'B89332211',
+    obraDestino: 'Nave Logística San Fernando',
+    fechaEntrega: '2025-05-12',
+    material: 'Placas Pladur Standard 15mm + Lana de Roca 40mm',
+    cantidad: '350 m² de placas + 30 rollos aislante',
+    precioUnitario: 14.5,
+    importeTotal: 5075.0,
+    estado: 'Recibido_Conforme',
+    firmadoPor: 'Antonio Gómez (Encargado de Obra)',
+    observaciones: 'Acopio bajo cubierto en nave principal.',
+  },
+];
+
+// -------------------------------------------------------------
+// 6. BASE DE CONOCIMIENTO RAG - NORMATIVAS Y SOPS DE CONSTRUCTORA
 // -------------------------------------------------------------
 
 export interface NormativaRAG {
   id: string;
   codigo: string;
-  departamentoId: 'marketing' | 'contabilidad' | 'ventas' | 'produccion' | 'rrhh';
+  departamentoId: 'estudio' | 'obras' | 'proyectos' | 'rrhh';
   departamentoNombre: string;
   titulo: string;
   categoria: string;
@@ -924,268 +580,291 @@ export interface NormativaRAG {
 }
 
 export const NORMATIVAS_RAG_DB: NormativaRAG[] = [
-  // --- MARKETING ---
+  // --- 1. ESTUDIO (Estudio de Clientes, Mediciones, Presupuestos y Viabilidad) ---
   {
-    id: 'rag-mkt-001',
-    codigo: 'MKT-SOP-01',
-    departamentoId: 'marketing',
-    departamentoNombre: 'Marketing & Growth',
-    titulo: 'Política de Descuentos Comerciales, Catas y Eventos Gastronómicos',
-    categoria: 'Promociones & Eventos',
+    id: 'rag-est-001',
+    codigo: 'EST-SOP-01',
+    departamentoId: 'estudio',
+    departamentoNombre: 'Estudio & Oficina Técnica',
+    titulo: 'Protocolo de Estudio de Viabilidad, Mediciones y Coeficientes de Paso',
+    categoria: 'Estudio Técnico & Presupuestos',
     vigencia: '2025 - 2026',
-    resumen: 'Regula el margen máximo de descuento promocional (hasta 12%) en ferias y catas para restaurantes y grupos hosteleros.',
+    resumen: 'Fórmula de cálculo de precios unitarios con márgenes directos (15%-22%), coeficiente de imprevistos (5%) y gastos generales (13%).',
     contenidoCompleto: `
-1. OBJETIVO:
-Establecer los límites de descuento y presupuesto asignado para degustaciones, catas gourmet y ferias gastronómicas.
+1. OBJETIVO DEL DEPARTAMENTO DE ESTUDIO:
+Analizar planos, memorias y pliegos técnicos de clientes para determinar costes reales, riesgos constructivos y emitir presupuestos viables y competitivos.
 
-2. CONDICIONES Y LÍMITES:
-- Descuento máximo permitido en captación inicial: 12% sobre tarifa base para pedidos superiores a €600.
-- Presupuesto mensual de catas por comercial: Máximo €350 en producto valorado a precio de coste.
-- Eventos autorizados: Ferias oficiales del sector (Salón Gourmets, Madrid Fusión) y catas privadas concertadas con jefes de cocina o directores de F&B.
-- Aprobación requerida: Cualquier promoción especial que supere el 12% debe contar con la firma de la Dirección de Marketing y el Director Financiero.
+2. ESTRUCTURA DE COSTE EN PRESUPUESTOS:
+- Costes Directos (CD): Materiales a precio de acopio negociado + Mano de obra de cuadrilla (según convenio) + Maquinaria específica.
+- Costes Indirectos de Obra (CI): 8% al 10% sobre CD (encargado, casetas, acometidas provisionales de luz y agua).
+- Gastos Generales de Empresa (GG): 13% sobre la suma de CD + CI.
+- Beneficio Industrial (BI): Rango objetivo entre 6% y 13% (Margen bruto total de la oferta: 15% a 22%).
+- Fondo de Imprevistos Geotécnicos/Estructurales: 5% obligatorio en obras de reforma y cimentación.
+
+3. VALIDACIÓN PREVIA A LA OFERTA:
+Todo presupuesto superior a €50.000 requiere revisión y firma conjunta del Jefe de Estudio y el Director Técnico.
     `.trim(),
     puntosClave: [
-      'Descuento máximo en ferias/catas: 12% para pedidos > €600.',
-      'Presupuesto mensual de degustación por comercial: €350 a precio de coste.',
-      'Autorización de Dirección requerida para condiciones superiores al 12%.',
+      'Margen bruto objetivo en ofertas: 15% al 22% según tipología de obra.',
+      'Fondo obligatorio de imprevistos del 5% en reformas y cimentación.',
+      'Gastos Generales (13%) y Beneficio Industrial (6%-13%) en licitaciones.',
+      'Aprobación de Dirección requerida para presupuestos superiores a €50.000.',
     ],
-    tags: ['descuentos', 'promociones', 'catas', 'eventos', 'ferias', 'marketing'],
+    tags: ['presupuestos', 'mediciones', 'viabilidad', 'margen', 'presto', 'costes directos', 'estudio'],
   },
   {
-    id: 'rag-mkt-002',
-    codigo: 'MKT-SOP-02',
-    departamentoId: 'marketing',
-    departamentoNombre: 'Marketing & Growth',
-    titulo: 'Protocolo de Cualificación de Leads B2B y SLA de Contacto Comercial',
-    categoria: 'Generación de Demanda',
+    id: 'rag-est-002',
+    codigo: 'EST-SOP-02',
+    departamentoId: 'estudio',
+    departamentoNombre: 'Estudio & Oficina Técnica',
+    titulo: 'SLA de Presentación de Ofertas a Clientes y Formato Estándar BC3',
+    categoria: 'Atención a Clientes & Licitaciones',
     vigencia: '2025 - 2026',
-    resumen: 'SLA estricto de contacto inferior a 2 horas para solicitudes de restaurantes y hoteles recibidas a través de la web.',
+    resumen: 'Plazo máximo de entrega de presupuesto: 5 días hábiles para reformas y 10 días para obra nueva. Formato oficial Presto/BC3.',
     contenidoCompleto: `
-1. TIEMPO DE RESPUESTA (SLA):
-Todo lead B2B entrante desde la web o campañas de LinkedIn/Google Ads debe recibir llamada o WhatsApp Business de cualificación en menos de 2 horas hábiles (09:00 a 19:00).
+1. TIEMPOS DE RESPUESTA A CLIENTES (SLA):
+- Reformas integrales y locales comerciales: Entrega del estudio y presupuesto en un máximo de 5 días hábiles.
+- Obra nueva y promociones residenciales: Entrega en un máximo de 10 días hábiles tras visita técnica de replanteo.
 
-2. CRITERIOS DE CUALIFICACIÓN (BANT):
-- Volumen de compra estimado superior a €500/mes.
-- Negocio con CIF activo en hostelería, restauración o alimentación gourmet.
-- Ubicación dentro de rutas logísticas directas o zona peninsular cubierta.
+2. DOCUMENTACIÓN OBLIGATORIA ENTREGABLE:
+- Presupuesto desglosado por capítulos (Demoliciones, Estructura, Albañilería, Instalaciones, Acabados).
+- Archivo digital intercambiable en estándar FIEBDC-3 (.BC3).
+- Cronograma estimativo de obra (Diagrama de Gantt) con hitos de certificación mensual.
     `.trim(),
     puntosClave: [
-      'SLA de respuesta: menos de 2 horas hábiles tras recibir el lead.',
-      'Pedido mínimo estimado para alta de cuenta: €500/mes.',
-      'Sincronización obligatoria del contacto en HubSpot CRM.',
+      'SLA presupuesto reforma: 5 días hábiles; Obra nueva: 10 días.',
+      'Desglose obligatorio por capítulos con archivo .BC3 para el cliente.',
+      'Inclusión indispensable de Diagrama de Gantt con fechas estimadas de entrega.',
     ],
-    tags: ['leads', 'sla', 'cualificacion', 'hubspot', 'contacto', 'marketing'],
+    tags: ['sla', 'clientes', 'ofertas', 'bc3', 'gantt', 'plazos', 'estudio'],
   },
 
-  // --- CONTABILIDAD ---
+  // --- 2. OBRAS (Planificación Operativa, Acopios, Maquinaria y Subcontratas) ---
   {
-    id: 'rag-cnt-001',
-    codigo: 'CNT-SOP-01',
-    departamentoId: 'contabilidad',
-    departamentoNombre: 'Contabilidad & Finanzas',
-    titulo: 'Condiciones de Pago a Clientes Hosteleros y Protocolo de Bloqueo por Mora',
-    categoria: 'Gestión de Cobros & Tesorería',
+    id: 'rag-obr-001',
+    codigo: 'OBR-SOP-01',
+    departamentoId: 'obras',
+    departamentoNombre: 'Obras & Planificación Operativa',
+    titulo: 'Protocolo de Replanteo Inicial, Acopio de Materiales y Plan de Maquinaria',
+    categoria: 'Operaciones & Logística de Obra',
     vigencia: '2025 - 2026',
-    resumen: 'Plazos de cobro SEPA a 30 días y bloqueo automático de nuevos pedidos si existen facturas vencidas con más de 15 días.',
+    resumen: 'Requisitos para acta de replanteo, reserva de vía pública para grúas y pedido de hormigón con 48h de antelación.',
     contenidoCompleto: `
-1. FORMAS Y PLAZOS DE PAGO:
-- Nuevos clientes: Primeros 3 pedidos mediante Transferencia Previa o Tarjeta al contado.
-- Clientes habituales verificados: Domiciliación Bancaria SEPA a 30 días fecha factura (máximo 60 días para cadenas hoteleras homologadas).
+1. ACTA DE REPLANTEO PREVIO:
+Antes de iniciar cualquier tajo, el Jefe del Dpto. de Obras debe firmar el Acta de Replanteo con la Dirección Facultativa y la Promotora, comprobando cotas topográficas y acometidas de obra.
 
-2. PROTOCOLO DE MOROSIDAD Y BLOQUEO:
-- Día 1 tras vencimiento: Recordatorio amistoso automatizado vía email/WhatsApp.
-- Día 7 tras vencimiento: Llamada del gestor de cobros y retención de descuentos.
-- Día 15 tras vencimiento: BLOQUEO AUTOMÁTICO en almacén. No se expide ningún nuevo pedido hasta la liquidación total de la deuda.
-- Día 30 tras vencimiento: Traslado del expediente al departamento jurídico para reclamación formal.
+2. PLANIFICACIÓN DE MAQUINARIA Y RESERVAS:
+- Grúas Torre y Autogrúas: Solicitud de ocupación de vía pública al Ayuntamiento con mínimo 15 días de antelación.
+- Pedidos de Hormigón y Bomba: Preaviso a la planta de hormigón con mínimo 48 horas de antelación indicando volumen, aditivos y hora punta de vertido.
+- Gestión de Acopios en Parcela: Prohibido acumular cargas puntuales que superen la capacidad portante de los forjados según memoria de cálculo.
     `.trim(),
     puntosClave: [
-      'Plazo estándar: SEPA 30 días fecha factura (máx. 60 días en hoteles).',
-      'Primeros 3 pedidos: Pago por adelantado obligatorio.',
-      'Bloqueo de pedidos a los 15 días de vencimiento impagado.',
+      'Firma obligatoria del Acta de Replanteo antes de arrancar los trabajos.',
+      'Preaviso de 48 horas para cubas de hormigón y camión bomba.',
+      'Ocupación de vía pública para grúas con 15 días de tramitación municipal.',
+      'Control riguroso de sobrecargas de acopio sobre forjados existentes.',
     ],
-    tags: ['cobros', 'mora', 'plazos', 'sepa', 'bloqueo', 'facturas', 'contabilidad'],
-  },
-  {
-    id: 'rag-cnt-002',
-    codigo: 'CNT-SOP-02',
-    departamentoId: 'contabilidad',
-    departamentoNombre: 'Contabilidad & Finanzas',
-    titulo: 'Guía de Tipos de IVA Alimentario y Emisión de Notas de Abono',
-    categoria: 'Fiscalidad & Facturación',
-    vigencia: '2025 - 2026',
-    resumen: 'Desglose oficial de IVA: 4% superreducido (quesos y básicos), 10% reducido (aceites, jamones, conservas) y 21% general (vinos y licores).',
-    contenidoCompleto: `
-1. DESGLOSE DE IVA POR LÍNEA DE PRODUCTO:
-- IVA Superreducido (4%): Quesos artesanos de leche natural, panadería y productos frescos básicos.
-- IVA Reducido (10%): Aceites de oliva virgen extra (AOVE), jamones ibéricos, embutidos curados, conservas de pescado y arroces.
-- IVA General (21%): Vinos, licores, bebidas alcohólicas y servicios de transporte o consultoría.
-
-2. NOTAS DE ABONO Y RECTIFICATIVAS:
-- Solo se emiten notas de abono si van acompañadas del albarán de devolución firmado por el transportista o informe de rotura verificado.
-    `.trim(),
-    puntosClave: [
-      'IVA 4%: Quesos frescos y leche cruda.',
-      'IVA 10%: Aceites AOVE, jamón ibérico, conservas y arroz.',
-      'IVA 21%: Vinos de bodega y bebidas alcohólicas.',
-      'Abonos requieren albarán de devolución o parte de rotura.',
-    ],
-    tags: ['iva', 'impuestos', 'facturacion', 'abonos', 'fiscalidad', 'contabilidad'],
-  },
-
-  // --- VENTAS ---
-  {
-    id: 'rag-vnt-001',
-    codigo: 'VNT-SOP-01',
-    departamentoId: 'ventas',
-    departamentoNombre: 'Ventas & Comercial',
-    titulo: 'Política de Pedido Mínimo para Entrega Gratuita y Portes',
-    categoria: 'Condiciones Comerciales',
-    vigencia: '2025 - 2026',
-    resumen: 'Pedido mínimo sin coste de transporte: €180 en Comunidad de Madrid y €300 en resto de España peninsular.',
-    contenidoCompleto: `
-1. UMBRALES DE PEDIDO MÍNIMO:
-- Comunidad de Madrid (Ruta propia): Pedido mínimo para envío gratis: €180 netos. Si el pedido es inferior, se cargará un suplemento de portes de €14,50.
-- Península (Logística refrigerada externa): Pedido mínimo para envío gratis: €300 netos. Para importes inferiores, suplemento de €28,00.
-- Baleares y Canarias: Pedido mínimo €650 con portes cotizados según cubicaje.
-
-2. EXCLUSIVIDAD DE CARTA:
-Los restaurantes que garanticen compra exclusiva de AOVE y Jamón Ibérico (> €1.500/mes) disfrutan de un 5% adicional de rappel trimestral.
-    `.trim(),
-    puntosClave: [
-      'Envío gratuito Madrid: pedidos desde €180 (portes €14,50 si es menor).',
-      'Envío gratuito Península: pedidos desde €300 (portes €28 si es menor).',
-      'Rappel trimestral del 5% por exclusividad en compras > €1.500/mes.',
-    ],
-    tags: ['pedido minimo', 'portes', 'envios', 'tarifas', 'comercial', 'ventas'],
+    tags: ['replanteo', 'maquinaria', 'gruas', 'acopio', 'hormigon', 'operaciones', 'obras'],
   },
   {
-    id: 'rag-vnt-002',
-    codigo: 'VNT-SOP-02',
-    departamentoId: 'ventas',
-    departamentoNombre: 'Ventas & Comercial',
-    titulo: 'Protocolo de Muestras Gratuitas y Escala de Comisiones Comerciales',
-    categoria: 'Incentivos & Muestrarios',
+    id: 'rag-obr-002',
+    codigo: 'OBR-SOP-02',
+    departamentoId: 'obras',
+    departamentoNombre: 'Obras & Planificación Operativa',
+    titulo: 'Homologación de Subcontratas y Control de Albaranes de Entrada',
+    categoria: 'Gestión de Proveedores & Albaranes',
     vigencia: '2025 - 2026',
-    resumen: 'Envío de sobres de jamón loncheado y botellines AOVE para prospección. Comisiones de comerciales del 3% al 7% según margen.',
+    resumen: 'Documentación obligatoria de subcontratas (REA, TC2, Seguro RC de 600.000€) y cotejo digital de cada albarán con la orden de compra.',
     contenidoCompleto: `
-1. ENVÍO DE MUESTRARIOS A CLIENTES POTENCIALES:
-- Se autoriza el envío de 1 kit de cata (2 sobres de jamón ibérico 100g + 1 botella AOVE 250ml) por restaurante prospectado con ticket medio > €35.
+1. HOMOLOGACIÓN DE EMPRESAS SUBCONTRATISTAS:
+Ningún operario externo puede entrar a obra sin aportar previamente:
+- Inscripción vigente en el Registro de Empresas Acreditadas (REA).
+- Póliza de Seguro de Responsabilidad Civil con cobertura mínima de €600.000.
+- TC2 / RNT de trabajadores al corriente de la Seguridad Social y certificados de aptitud médica.
 
-2. BAREMO DE COMISIONES COMERCIALES:
-- Productos de margen alto (>35%, Vinos y Conservas): 7% de comisión sobre venta neta cobrada.
-- Productos de margen medio (25%-35%, Jamones y Quesos): 5% de comisión.
-- Productos de alta rotación y margen ajustado (<25%, AOVE y Arroces): 3% de comisión.
+2. PROTOCOLO DE RECEPCIÓN Y SUBIDA DE ALBARANES:
+- Todo material entregado (hormigón, ferralla, ladrillo, mortero, yeso) debe ser revisado en el momento de la descarga.
+- El encargado debe fotografiar el albarán con la app/Deskly, comprobar cantidad y nº de pedido, firmar la conformidad y subirlo de inmediato para su registro contable y control de costes.
     `.trim(),
     puntosClave: [
-      'Kit de cata autorizado para restaurantes con ticket > €35.',
-      'Comisiones: 7% (Vinos/Conservas), 5% (Ibéricos/Quesos), 3% (Aceite AOVE/Arroz).',
-      'Comisiones liquidadas a mes vencido sobre facturas efectivamente cobradas.',
+      'Documentación previa exigida: REA, TC2 y Seguro de Responsabilidad Civil de €600.000.',
+      'Recepción y foto obligatoria del albarán al momento de la descarga.',
+      'Cotejo inmediato de cantidades y calidades frente a la orden de compra.',
     ],
-    tags: ['muestras', 'comisiones', 'incentivos', 'vendedores', 'ventas'],
+    tags: ['subcontratas', 'albaranes', 'rea', 'seguro rc', 'proveedores', 'compras', 'obras'],
   },
 
-  // --- PRODUCCIÓN Y LOGÍSTICA ---
+  // --- 3. PROYECTOS (Encargados de Obra, Ejecución en Tajo, Partes Diarios y Calidad) ---
   {
-    id: 'rag-log-001',
-    codigo: 'LOG-SOP-01',
-    departamentoId: 'produccion',
-    departamentoNombre: 'Producción & Logística',
-    titulo: 'Protocolo de Mantenimiento de la Cadena de Frío y Control Sanitario',
-    categoria: 'Seguridad Alimentaria & Calidad',
+    id: 'rag-pry-001',
+    codigo: 'PRY-SOP-01',
+    departamentoId: 'proyectos',
+    departamentoNombre: 'Proyectos & Ejecución en Tajo',
+    titulo: 'Partes Diarios de Trabajo, Libro de Órdenes y Certificaciones Mensuales',
+    categoria: 'Control de Ejecución & Certificaciones',
     vigencia: '2025 - 2026',
-    resumen: 'Rango térmico obligatorio: 2°C a 4°C para quesos y embutidos frescos; 14°C a 18°C para vinos y aceites.',
+    resumen: 'Cierre de certificaciones el día 25 de cada mes. Parte diario obligatorio con personal, climatología y unidades ejecutadas.',
     contenidoCompleto: `
-1. ESPECIFICACIONES DE TEMPERATURA:
-- Cámara frigorífica 1 (Quesos y Embutidos): Mantener entre 2,0 °C y 4,5 °C permanentemente.
-- Cámara climatizada 2 (Vinos, AOVE y Conservas): Mantener entre 14,0 °C y 18,0 °C para evitar degradación organoléptica.
-- Vehículos de reparto: Termógrafos calibrados con registro continuo cada 15 minutos durante la ruta.
+1. PARTE DIARIO DE TRABAJO EN EL TAJO:
+El Encargado de Obra debe cumplimentar a diario antes de las 18:00h el Parte Digital indicando:
+- Número de operarios propios y de subcontratas presentes.
+- Climatología (anotar si hubo viento o lluvia que paralizara trabajos en altura o vertidos).
+- Mediciones aproximadas de unidades ejecutadas (m² de tabique, m³ de hormigón vertido, ml de zanja).
+- Incidencias o desviaciones sobre el plano.
 
-2. PROTOCOLO DE ALERTA:
-Cualquier desviación térmica superior a 2 horas invalida la expedición del lote para su reauditoría de calidad.
+2. CICLO MENSUAL DE CERTIFICACIONES:
+- Día 25 de cada mes: Corte y cierre de mediciones reales ejecutadas en obra.
+- Día 28 de cada mes: Validación conjunta con el Aparejador / Director de Obra de la propiedad.
+- Día 30 de cada mes: Emisión de la Factura de Certificación con desglose por partidas.
     `.trim(),
     puntosClave: [
-      'Temperatura quesos y embutidos: 2,0 °C - 4,5 °C.',
-      'Temperatura vinos y AOVE: 14,0 °C - 18,0 °C.',
-      'Termógrafos en camiones con registro cada 15 minutos.',
+      'Parte diario obligatorio antes de las 18:00h (cuadrillas, clima y producción).',
+      'Corte mensual de mediciones el día 25 de cada mes.',
+      'Aprobación de la Dirección Facultativa antes del día 28.',
+      'Facturación de certificaciones el día 30 de cada mes.',
     ],
-    tags: ['cadena de frio', 'temperatura', 'sanidad', 'calidad', 'camaras', 'logistica'],
+    tags: ['partes diarios', 'certificaciones', 'mediciones', 'encargado', 'libro de ordenes', 'proyectos'],
   },
   {
-    id: 'rag-log-002',
-    codigo: 'LOG-SOP-02',
-    departamentoId: 'produccion',
-    departamentoNombre: 'Producción & Logística',
-    titulo: 'Ventanas Horarias de Entrega en Cocina y Gestión de Incidencias en Descarga',
-    categoria: 'Operaciones de Transporte',
+    id: 'rag-pry-002',
+    codigo: 'PRY-SOP-02',
+    departamentoId: 'proyectos',
+    departamentoNombre: 'Proyectos & Ejecución en Tajo',
+    titulo: 'Protocolo de Seguridad en el Tajo (PRL), Epis y Líneas de Vida',
+    categoria: 'Seguridad y Salud en Obra',
     vigencia: '2025 - 2026',
-    resumen: 'Horario estricto de entrega a restaurantes entre 08:00 y 11:30 antes del servicio de almuerzos.',
+    resumen: 'Uso ininterrumpido de casco, calzado S3, chaleco y arnés anticaídas en alturas superiores a 2 metros. Inspección diaria de barandillas perimetrales.',
     contenidoCompleto: `
-1. FRANJAS HORARIAS DE DESCARGA:
-- Franja Preferente (Restaurantes y Hoteles): 08:00 a 11:30 horas (antes del montaje y preparación de cocina).
-- Franja Tarde (Locales de noche / Bares de copas): 16:30 a 19:30 horas.
-- Queda terminantemente prohibido realizar descargas entre las 13:30 y las 16:00 (hora punta de servicio de comidas).
+1. EQUIPOS DE PROTECCIÓN INDIVIDUAL (EPIs):
+- Obligatorio para cualquier persona que pise la obra: Casco de seguridad homologado EN 397, botas con puntera y plantilla de acero S3, chaleco reflectante de alta visibilidad.
+- Trabajos en altura (>2,0 m): Uso obligatorio de arnés integral de seguridad EN 361 amarrado a línea de vida certificada o punto de anclaje estructural.
 
-2. GESTIÓN DE DEVOLUCIONES Y ROTURAS:
-- Cualquier producto golpeado o defectuoso debe ser anotado en el albarán digital con foto y firma del jefe de cocina en un plazo máximo de 24 horas.
+2. PROTECCIONES COLECTIVAS:
+- Barandillas perimetrales en huecos de forjado y cajas de ascensor con rodapié de 15 cm.
+- Redes de seguridad tipo horca (tipo V) o bajo forjado (tipo S) colocadas antes de desencofrar.
     `.trim(),
     puntosClave: [
-      'Entrega preferente en restaurantes: 08:00 - 11:30.',
-      'Prohibido descargar durante servicio de comidas (13:30 - 16:00).',
-      'Plazo máximo para notificar incidencias/roturas: 24 horas con foto.',
+      'EPIs obligatorios: Casco EN 397, calzado S3 y chaleco reflectante.',
+      'Arnés obligatorio amarrado a línea de vida en alturas superiores a 2 metros.',
+      'Barandillas con rodapié en todos los huecos y perímetros de forjado.',
+      'Paralización inmediata del tajo si se detecta riesgo grave o inminente.',
     ],
-    tags: ['entregas', 'horarios', 'restaurantes', 'albaran', 'devoluciones', 'logistica'],
+    tags: ['prl', 'seguridad', 'epis', 'lineas de vida', 'arnes', 'encofrado', 'proyectos'],
   },
 
-  // --- RECURSOS HUMANOS ---
+  // --- 4. RRHH (Nóminas, Fichajes en Caseta, Convenio de la Construcción y TPC) ---
   {
     id: 'rag-rrh-001',
     codigo: 'RRH-SOP-01',
     departamentoId: 'rrhh',
-    departamentoNombre: 'Recursos Humanos & Talento',
-    titulo: 'Convenio de Mayoristas de Alimentación, Turnos y Política de Horas Extra',
+    departamentoNombre: 'Recursos Humanos, Cuadrillas & PRL',
+    titulo: 'Convenio General de la Construcción, Jornada de Verano y Control Horario',
     categoria: 'Relaciones Laborales & Nóminas',
     vigencia: '2025 - 2026',
-    resumen: 'Jornada anual de 1.770 horas, turnos rotativos de almacén y compensación de horas extraordinarias con un 50% de recargo.',
+    resumen: 'Jornada anual de 1.736 horas. Jornada intensiva continua de verano (07:00 a 15:00) entre julio y agosto por estrés térmico. Fichaje en caseta.',
     contenidoCompleto: `
-1. JORNADA Y TURNOS DE TRABAJO:
-- Almacén y Mozo de Cámara: Turno Mañana (06:00 - 14:00) y Turno Tarde (13:30 - 21:30).
-- Equipo Comercial y Administración: 08:30 a 17:30 (lunes a jueves) y 08:00 a 15:00 (viernes).
+1. JORNADA LABORAL Y HORARIOS DE OBRA:
+- Jornada Estándar (Septiembre a Junio): Lunes a Viernes de 08:00 a 17:00 (1 hora para comida).
+- Jornada Continua de Verano (Julio y Agosto): Lunes a Viernes de 07:00 a 15:00 (jornada intensiva para evitar las horas de máxima insolación y calor extremo).
 
-2. POLÍTICA DE HORAS EXTRAORDINARIAS:
-- Se limitan a un máximo legal de 80 horas anuales por empleado.
-- Compensación: Se abonan con un recargo del 50% sobre la hora ordinaria o mediante descanso equivalente (1,5 horas de descanso por cada hora extra trabajada) dentro de los 4 meses siguientes.
+2. REGISTRO HORARIO Y FICHAJES:
+- Todo operario y técnico debe fichar entrada y salida mediante el sistema digital o tablet de la caseta de obra.
+- Las horas extraordinarias están limitadas a un máximo legal de 80h al año y se abonan con el 50% de recargo sobre la tarifa base de convenio.
     `.trim(),
     puntosClave: [
-      'Jornada de almacén: Turno Mañana (06:00-14:00) y Tarde (13:30-21:30).',
-      'Máximo 80 horas extraordinarias al año por trabajador.',
-      'Recargo del 50% en horas extra o 1,5 horas de descanso compensatorio.',
+      'Jornada intensiva de verano (07:00-15:00) obligatoria en julio y agosto por estrés térmico.',
+      'Jornada ordinaria: 08:00-17:00 con 1h de descanso.',
+      'Fichaje obligatorio de cuadrillas en la caseta de obra al entrar y salir.',
+      'Horas extra con recargo del 50% según el Convenio General de la Construcción.',
     ],
-    tags: ['convenio', 'turnos', 'horas extra', 'nominas', 'jornada', 'rrhh'],
+    tags: ['convenio', 'jornada intensiva', 'verano', 'fichajes', 'horas extra', 'nominas', 'rrhh'],
   },
   {
     id: 'rag-rrh-002',
     codigo: 'RRH-SOP-02',
     departamentoId: 'rrhh',
-    departamentoNombre: 'Recursos Humanos & Talento',
-    titulo: 'Plan de Prevención de Riesgos Laborales en Almacén y Manejo de Cargas',
-    categoria: 'Salud Laboral & PRL',
+    departamentoNombre: 'Recursos Humanos, Cuadrillas & PRL',
+    titulo: 'Tarjeta Profesional de la Construcción (TPC) y Formación Obligatoria PRL',
+    categoria: 'Acreditaciones & Salud Laboral',
     vigencia: '2025 - 2026',
-    resumen: 'Uso obligatorio de botas de seguridad S3, chaleco reflectante y límite de levantamiento manual a 25 kg por persona.',
+    resumen: 'Obligatoriedad de curso de 20 horas por oficio (albañilería, encofrado, electricidad) o 60h para recursos preventivos. Reconocimiento médico anual.',
     contenidoCompleto: `
-1. EQUIPOS DE PROTECCIÓN INDIVIDUAL (EPIs):
-- Obligatorio en nave y muelle: Calzado de seguridad con puntera reforzada S3, chaleco de alta visibilidad y guantes térmicos en cámaras frigoríficas.
+1. REQUISITOS DE CONTRATACIÓN Y ACCESO:
+- Es requisito indispensable disponer de la Tarjeta Profesional de la Construcción (TPC) activa.
+- Formación mínima obligatoria: Curso de Prevención de Riesgos Laborales de 20 horas presenciales específico del oficio a desempeñar (Albañilería, Estructuras, Fontanería, etc.).
+- Jefes y Encargados: Curso de Nivel Básico de PRL de 60 horas para actuar como Recurso Preventivo.
 
-2. MANIPULACIÓN MANUAL DE CARGAS:
-- Peso máximo por persona: 25 kg en condiciones ideales (15 kg para cargas repetitivas como sacos de arroz o garrafas de AOVE).
-- Cargas superiores a 25 kg: Uso obligatorio de transpaleta eléctrica, carretilla elevadora o manipulación en equipo de dos personas.
+2. VIGILANCIA DE LA SALUD:
+- Reconocimiento médico específico anual (control de esfuerzo físico, audiometría y visión).
     `.trim(),
     puntosClave: [
-      'EPIs obligatorios: Calzado S3, chaleco reflectante y ropa térmica en cámaras.',
-      'Límite de carga manual: 25 kg (15 kg en manipulación continua).',
-      'Uso obligado de transpaletas para cajas de AOVE y sacos pesados.',
+      'TPC obligatoria para todos los operarios de plantilla y subcontratistas.',
+      'Curso homologado de 20 horas por oficio requerido antes de pisar el tajo.',
+      'Encargados deben disponer de curso básico de PRL de 60 horas (Recurso Preventivo).',
+      'Reconocimiento médico anual obligatorio en servicio de prevención ajeno.',
     ],
-    tags: ['prl', 'seguridad', 'epis', 'almacen', 'cargas', 'riesgos', 'rrhh'],
+    tags: ['tpc', 'formacion 20 horas', 'prl', 'recurso preventivo', 'salud', 'rrhh'],
   },
 ];
 
+// Mock Calendar Events
+export const MOCK_CALENDAR_EVENTS = [
+  {
+    id: 'evt-001',
+    summary: 'Visita de Replanteo y Dirección de Obra - Residencial Mirasierra',
+    start: { dateTime: '2025-05-20T09:00:00+02:00' },
+    end: { dateTime: '2025-05-20T11:00:00+02:00' },
+    attendees: [{ email: 'carlos.mendez@promirasierra.es' }, { email: 'aparejador@mirasierra.es' }],
+    description: 'Revisión de armaduras de forjado nivel +2 y comprobación de acometidas.',
+    location: 'Calle de la Senda 42, Mirasierra (Madrid)',
+  },
+  {
+    id: 'evt-002',
+    summary: 'Comité de Certificación Mensual con Dirección Facultativa - Castellana Prime',
+    start: { dateTime: '2025-05-21T12:00:00+02:00' },
+    end: { dateTime: '2025-05-21T13:30:00+02:00' },
+    attendees: [{ email: 'marta.rivas@castellanaprime.com' }],
+    description: 'Revisión de mediciones de climatización VRF y aprobación de la certificación nº 6.',
+    location: 'Paseo de la Castellana 140, Planta 4, Madrid',
+  },
+  {
+    id: 'evt-003',
+    summary: 'Reunión de Coordinación de Seguridad y Salud (CSS) - Nave San Fernando',
+    start: { dateTime: '2025-05-22T16:00:00+02:00' },
+    end: { dateTime: '2025-05-22T17:00:00+02:00' },
+    attendees: [{ email: 'coordinador.prl@sanfernando.es' }, { email: 'lucia.benitez@deskly.es' }],
+    description: 'Auditoría de líneas de vida y montaje de cubierta ligera.',
+    location: 'Polígono Industrial San Fernando de Henares',
+  },
+];
 
+// Mock CRM Deals
+export const MOCK_HUBSPOT_DEALS = [
+  {
+    id: 'deal-001',
+    dealname: 'Licitación Obra 32 Viviendas Unifamiliares en Boadilla',
+    amount: '1850000',
+    dealstage: 'Propuesta Técnica y Económica Enviada',
+    pipeline: 'Promociones Residenciales',
+    fechaCierre: '2025-06-30',
+    fechaCreacion: '2025-04-10',
+  },
+  {
+    id: 'deal-002',
+    dealname: 'Reforma Integral de Edificio de Oficinas 4.000 m² en Méndez Álvaro',
+    amount: '920000',
+    dealstage: 'Negociación y Ajuste de Mediciones',
+    pipeline: 'Rehabilitación y Terciario',
+    fechaCierre: '2025-05-28',
+    fechaCreacion: '2025-03-25',
+  },
+  {
+    id: 'deal-003',
+    dealname: 'Adecuación de Nave Logística Frigorífica en Alcalá',
+    amount: '450000',
+    dealstage: 'Estudio de Viabilidad y Precios Unitarios',
+    pipeline: 'Industrial & Logística',
+    fechaCierre: '2025-06-15',
+    fechaCreacion: '2025-05-02',
+  },
+];
