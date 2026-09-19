@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Deskly Executive AI Assistant',
-  description: 'Asistente ejecutivo de operaciones, finanzas, clientes y CRM.',
+  title: 'Deskly | Asistente Ejecutivo & Operativo',
+  description: 'Plataforma ejecutiva de operaciones, catálogo de distribución, finanzas y CRM.',
+  icons: {
+    icon: '/deskly-logo.png',
+  },
 };
 
 export default function RootLayout({
@@ -13,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark">
-      <body className="min-h-screen bg-[#09090b] text-[#f4f4f5] antialiased flex flex-col">
+      <body className="min-h-screen bg-[#080E1E] text-slate-100 antialiased flex flex-col">
         {children}
       </body>
     </html>

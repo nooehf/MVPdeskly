@@ -3,12 +3,14 @@ import {
   FACTURAS_DB,
   GASTOS_DB,
   PRODUCTOS_Y_SERVICIOS,
+  NORMATIVAS_RAG_DB,
   MOCK_CALENDAR_EVENTS,
   MOCK_HUBSPOT_DEALS,
   Cliente,
   Factura,
   GastoCoste,
   ProductoServicio,
+  NormativaRAG,
   MetricasFinancieras,
 } from '../data/business-database';
 
@@ -484,4 +486,63 @@ export function consultarCatalogoProductos(params?: {
     productos: resultado,
   };
 }
+
+/**
+ * Sistema RAG: Consulta la base de conocimiento y normativas departamentales
+ * utilizando búsqueda por departamento, categoría o términos clave.
+ */
+export function consultarNormativasRAG(params?: {
+  consulta?: string;
+  departamento?: 'marketing' | 'contabilidad' | 'ventas' | 'produccion' | 'rrhh' | string;
+  categoria?: string;
+}) {
+  let documentos = [...NORMATIVAS_RAG_DB];
+
+  // Filtrado por departamento si se especifica
+  if (params?.departamento) {
+    const depFilter = params.departamento.toLowerCase();
+    documentos = documentos.filter(
+      (d) =>
+        d.departamentoId.toLowerCase() === depFilter ||
+        d.departamentoNombre.toLowerCase().includes(depFilter)
+    );
+  }
+
+  // Filtrado por categoría si se especifica
+  if (params?.categoria) {
+    const catFilter = params.categoria.toLowerCase();
+    documentos = documentos.filter((d) =>
+      d.categoria.toLowerCase().includes(catFilter)
+    );
+  }
+
+  // Búsqueda por términos de consulta (RAG matching)
+  if (params?.consulta) {
+    const q = params.consulta.toLowerCase().trim();
+    const tokens = q.split(/\s+/).filter((t) => t.length > 2);
+
+    documentos = documentos.filter((doc) => {
+      const textoCompleto = `${doc.titulo} ${doc.codigo} ${doc.categoria} ${doc.resumen} ${doc.contenidoCompleto} ${doc.tags.join(' ')} ${doc.puntosClave.join(' ')}`.toLowerCase();
+
+      // Coincidencia directa de la frase o de al menos un token significativo
+      if (textoCompleto.includes(q)) return true;
+      return tokens.some((token) => textoCompleto.includes(token));
+    });
+  }
+
+  return {
+    totalNormativasEncontradas: documentos.length,
+    normativas: documentos.map((d) => ({
+      codigo: d.codigo,
+      departamento: d.departamentoNombre,
+      titulo: d.titulo,
+      categoria: d.categoria,
+      vigencia: d.vigencia,
+      resumen: d.resumen,
+      contenidoCompleto: d.contenidoCompleto,
+      puntosClave: d.puntosClave,
+    })),
+  };
+}
+
 

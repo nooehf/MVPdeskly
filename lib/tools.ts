@@ -11,6 +11,7 @@ import {
   crearNuevoDealCRM,
   emitirNuevaFactura,
   consultarCatalogoProductos,
+  consultarNormativasRAG,
 } from './services/business-service';
 
 /**
@@ -234,6 +235,28 @@ export const toolsConfig = [
         },
       },
       {
+        name: 'consultarNormativasRAG',
+        description:
+          'Sistema RAG: Consulta las normativas internas, protocolos operativos (SOPs), políticas de empresa, convenios y reglas de los 5 departamentos (Marketing, Contabilidad, Ventas, Producción/Logística y RRHH). Permite responder con precisión sobre pedido mínimo, plazos de cobro SEPA, descuentos, cadena de frío, turnos y prevención.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            consulta: {
+              type: 'STRING',
+              description: 'Término o pregunta específica a buscar en el sistema RAG (ej. "pedido mínimo portes", "plazo cobro mora", "descuentos en catas", "cadena de frio temperatura", "horas extras convenio").',
+            },
+            departamento: {
+              type: 'STRING',
+              description: 'Filtrar por departamento: "marketing", "contabilidad", "ventas", "produccion" o "rrhh".',
+            },
+            categoria: {
+              type: 'STRING',
+              description: 'Filtrar por categoría (ej. "Fiscalidad", "Relaciones Laborales", "Seguridad Alimentaria").',
+            },
+          },
+        },
+      },
+      {
         name: 'obtenerDealsHubspot',
         description: 'Obtiene las oportunidades y deals de venta comerciales registrados recientemente en el pipeline.',
         parameters: {
@@ -356,6 +379,14 @@ export async function executeToolCall(name: string, args: Record<string, any> = 
           categoria: args.categoria,
           soloMasVendidos: args.soloMasVendidos,
           busqueda: args.busqueda,
+        });
+      }
+
+      case 'consultarNormativasRAG': {
+        return consultarNormativasRAG({
+          consulta: args.consulta,
+          departamento: args.departamento,
+          categoria: args.categoria,
         });
       }
 
