@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AI Ops Assistant - Gemini 2.5 Flash + HubSpot & Calendar',
-  description: 'Asistente de operaciones impulsado por Gemini 2.5 Flash con Function Calling a HubSpot CRM y Google Calendar.',
+  title: 'Deskly Executive AI Assistant',
+  description: 'Asistente ejecutivo de operaciones, finanzas, clientes y CRM.',
 };
 
 export default function RootLayout({
