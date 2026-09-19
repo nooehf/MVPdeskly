@@ -36,6 +36,9 @@ import {
   Crown,
   Flag,
   AlertTriangle,
+  LogIn,
+  LogOut,
+  Timer,
 } from 'lucide-react';
 
 interface ToolLog {
@@ -250,6 +253,12 @@ export default function ChatPage() {
   const [reportFormData, setReportFormData] = useState<ReporteIncidencia | null>(null);
   const [reportCopied, setReportCopied] = useState(false);
 
+  // Estados de Fichaje / Control Horario
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [clockInTime, setClockInTime] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [fichajeToast, setFichajeToast] = useState<{ tipo: 'entrada' | 'salida'; hora: string; duracion?: string } | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const deptMenuRef = useRef<HTMLDivElement>(null);
@@ -261,6 +270,17 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  // Contador de tiempo trabajado cuando está fichado
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isClockedIn) {
+      interval = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isClockedIn]);
 
   // Ajuste automático de altura del textarea
   useEffect(() => {
@@ -295,6 +315,35 @@ export default function ChatPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedReport, isMapModalOpen]);
+
+  // Formatear segundos a HH:MM:SS
+  const formatElapsed = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  // Manejador para Fichar Entrada / Salida
+  const handleToggleFichaje = () => {
+    const now = new Date();
+    const horaStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    if (!isClockedIn) {
+      setIsClockedIn(true);
+      setClockInTime(horaStr);
+      setElapsedSeconds(0);
+      setFichajeToast({ tipo: 'entrada', hora: horaStr });
+      setTimeout(() => setFichajeToast(null), 4000);
+    } else {
+      const duracionStr = formatElapsed(elapsedSeconds);
+      setIsClockedIn(false);
+      setFichajeToast({ tipo: 'salida', hora: horaStr, duracion: duracionStr });
+      setClockInTime(null);
+      setElapsedSeconds(0);
+      setTimeout(() => setFichajeToast(null), 5000);
+    }
+  };
 
   // Abrir reporte pre-rellenado
   const handleOpenReport = (reporte: ReporteIncidencia) => {
@@ -412,6 +461,14 @@ export default function ChatPage() {
 
   const formatToolName = (name: string) => {
     switch (name) {
+      case 'agendarEventoCalendario':
+        return 'Google Calendar: Evento Agendado';
+      case 'crearOActualizarContactoCRM':
+        return 'CRM: Contacto Registrado';
+      case 'crearDealCRM':
+        return 'CRM: Deal Guardado en Pipeline';
+      case 'emitirFactura':
+        return 'Contabilidad: Factura Emitida';
       case 'consultarResumenFinanciero':
         return 'Finanzas: Resumen Ejecutivo & KPIs';
       case 'consultarFacturas':
@@ -435,6 +492,37 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen max-h-screen bg-[#09090b] text-[#f4f4f5]">
+      {/* Toast Notificación Flotante de Fichaje */}
+      {fichajeToast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-3 fade-in duration-200">
+          <div
+            className={`p-3.5 sm:p-4 rounded-xl border shadow-2xl backdrop-blur-xl flex items-center gap-3 ${
+              fichajeToast.tipo === 'entrada'
+                ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
+                : 'bg-zinc-900/95 border-zinc-700 text-zinc-200'
+            }`}
+          >
+            <div
+              className={`p-2 rounded-lg shrink-0 ${
+                fichajeToast.tipo === 'entrada' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-800 text-zinc-400'
+              }`}
+            >
+              {fichajeToast.tipo === 'entrada' ? <LogIn className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-semibold">
+                {fichajeToast.tipo === 'entrada' ? '✅ Jornada Iniciada' : '🏁 Jornada Finalizada'}
+              </p>
+              <p className="text-[11px] opacity-80 mt-0.5">
+                {fichajeToast.tipo === 'entrada'
+                  ? `Fichaje de entrada registrado a las ${fichajeToast.hora} en RRHH.`
+                  : `Fichaje de salida a las ${fichajeToast.hora} (Tiempo trabajado: ${fichajeToast.duracion}).`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Superior Responsivo */}
       <header className="border-b border-zinc-800 bg-[#0c0c0e]/80 backdrop-blur-md px-3 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2 z-20">
         <div className="flex items-center gap-2.5 sm:gap-3">
@@ -453,6 +541,35 @@ export default function ChatPage() {
 
         {/* Acciones de la Cabecera Responsivas */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Botón Fichar Entrada / Salida */}
+          <button
+            onClick={handleToggleFichaje}
+            className={`flex items-center gap-1.5 sm:gap-2 text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg transition-all shadow-sm ${
+              isClockedIn
+                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25'
+                : 'bg-zinc-900/90 text-zinc-300 hover:text-zinc-100 border border-zinc-700/80 hover:border-emerald-500/40'
+            }`}
+            title={isClockedIn ? 'Pulsar para fichar salida de la jornada' : 'Pulsar para fichar entrada al trabajo'}
+          >
+            {isClockedIn ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="font-mono text-[11px] sm:text-xs">{formatElapsed(elapsedSeconds)}</span>
+                <span className="hidden sm:inline text-zinc-400">|</span>
+                <span className="text-[11px] sm:text-xs text-red-400 hover:text-red-300 font-medium">Salir</span>
+              </>
+            ) : (
+              <>
+                <LogIn className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                <span className="hidden xs:inline">Fichar entrada</span>
+                <span className="xs:hidden">Fichar</span>
+              </>
+            )}
+          </button>
+
           {/* Botón Panel de Gestión */}
           <button
             onClick={() => setIsMapModalOpen(true)}

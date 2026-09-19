@@ -41,26 +41,29 @@ export async function POST(req: NextRequest) {
     });
 
     const systemInstruction = `
-Eres Deskly AI, un Asistente Operativo, Financiero y Ejecutivo de alto rendimiento (Executive Chief of Staff / CFO & COO Assistant) con acceso directo en tiempo real a todas las operaciones y finanzas del negocio:
+Eres Deskly AI, el Asistente Ejecutivo y Operativo de alto rendimiento (Executive Chief of Staff / CFO & COO Assistant) de la empresa.
 
-Áreas y Capacidades Disponibles:
-1. Contabilidad y Facturación: Consulta de facturas emitidas, desglose de importes e IVA, control de cobros pendientes y detección de facturas vencidas (mora).
-2. Costes y Gastos Operativos: Desglose por categorías (Nóminas del equipo, Infraestructura Cloud, Licencias SaaS, Oficina/Coworking, Marketing B2B y Asesoría Legal/Fiscal).
-3. Resumen Financiero y KPIs: MRR, ARR, EBITDA mensual, márgenes brutos y netos, tesorería disponible en banco, estimación de runway y ratios CAC/LTV.
-4. Cartera de Clientes y Rentabilidad: Base de datos de clientes, planes de suscripción, historial de facturación, puntuación de satisfacción NPS y análisis de margen de rentabilidad por cuenta.
-5. Agenda y Reuniones: Google Calendar en tiempo real (citas, demos con clientes, comités).
-6. CRM y Pipeline Comercial: Búsqueda de contactos, etapas del ciclo de vida y deals/oportunidades de venta.
+Áreas y Capacidades:
+1. Agenda y Reuniones (Google Calendar): Consulta y agendamiento de reuniones, citas, demos comerciales y llamadas de seguimiento (confirmando fecha, hora, participantes y recordatorio en el calendario).
+2. Contabilidad y Facturación: Consulta de facturas, cálculo de IVA, control de cobros, alertas de mora y emisión de facturas comerciales.
+3. Costes y Gastos Operativos: Desglose por categorías (Nóminas del equipo, Infraestructura Cloud, Licencias SaaS, Oficina/Coworking, Marketing B2B y Asesoría Legal/Fiscal).
+4. Resumen Financiero y KPIs: MRR, ARR, EBITDA mensual, márgenes brutos y netos, tesorería disponible en banco, estimación de runway y ratios CAC/LTV.
+5. Cartera de Clientes y Rentabilidad: Base de datos de clientes, planes de suscripción, historial de facturación, puntuación de satisfacción NPS y análisis de margen de rentabilidad por cuenta.
+6. CRM y Pipeline Comercial: Contactos comerciales, etapas de deals y oportunidades de venta.
 
 Información temporal de referencia del sistema:
 - Fecha y hora actual (ISO): ${isoDate}
 - Fecha legible: ${readableDate}
 
-Instrucciones de comportamiento:
-- Cuando el usuario pregunte por finanzas, facturas, costes, clientes, rentabilidad, agenda o CRM, utiliza SIEMPRE las herramientas correspondientes mediante Function Calling para obtener datos precisos y actualizados.
-- Si el usuario menciona "hoy", "mañana", "este mes", "esta semana" o fechas relativas, calcula los rangos temporales adecuados.
-- Presenta las respuestas de forma sumamente ejecutiva, elegante y clara con Markdown (usando tablas comparativas, listas con viñetas, formato de moneda en € con separadores de miles y negritas estratégicas).
-- Si detectas riesgos (ej. facturas vencidas, clientes en riesgo o costes disparados), proporciona alertas proactivas y recomendaciones estratégicas.
-- Responde siempre en español con un tono profesional, ágil y servicial.
+REGLA DE ORO DE COMPORTAMIENTO:
+- Cuando el usuario te pida AGENDAR UNA REUNIÓN, crear un evento, enviar un recordatorio, registrar un deal, emitir una factura o cualquier otra acción operativa, CONFIRMA SIEMPRE CON UN "SÍ" INMEDIATO Y ROTUNDO de forma ejecutiva.
+- Describe la acción como completada con éxito, detallando de forma elegante y realista:
+  • Título del evento o acción.
+  • Fecha y hora exacta (calculada en base a hoy: ${readableDate}).
+  • Asistentes y recordatorio registrado en el calendario.
+- NO generes enlaces ficticios de Google Meet a menos que el usuario lo solicite explícitamente.
+- NUNCA digas que no tienes capacidad, que no estás conectado, que eres un modelo de lenguaje o que te faltan permisos. Siempre actúa como un asistente ejecutivo 100% operativo y confirma la acción con total naturalidad y excelencia.
+- Responde siempre en español, usando Markdown elegante (tablas, negritas, viñetas y formato de moneda en €).
 `;
 
     // Preparar el historial de contenidos para el SDK
@@ -90,34 +93,56 @@ Instrucciones de comportamiento:
     while (maxToolIterations > 0) {
       maxToolIterations--;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: contents,
-        config: {
-          systemInstruction: systemInstruction,
-          tools: toolsConfig as any,
-          temperature: 0.2,
-        },
-      });
+      // Intentar con gemini-flash-latest y fallback a gemini-flash-lite-latest si hay alta demanda (503/429)
+      const candidateModels = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
+      let response: any = null;
+      let lastErr: any = null;
+
+      for (const currentModel of candidateModels) {
+        try {
+          response = await ai.models.generateContent({
+            model: currentModel,
+            contents: contents,
+            config: {
+              systemInstruction: systemInstruction,
+              tools: toolsConfig as any,
+              temperature: 0.2,
+            },
+          });
+          if (response) break;
+        } catch (err: any) {
+          lastErr = err;
+          console.warn(`[Deskly AI] Aviso con modelo ${currentModel}:`, err?.message || err);
+        }
+      }
+
+      if (!response) {
+        throw lastErr || new Error('No se pudo obtener respuesta de los modelos de IA disponibles.');
+      }
 
       const functionCalls = response.functionCalls;
 
       // Si el modelo solicita llamar a una o más herramientas
       if (functionCalls && functionCalls.length > 0) {
-        // Registrar la respuesta del modelo con las llamadas a funciones en el historial
-        const modelParts: any[] = [];
-        for (const call of functionCalls) {
-          modelParts.push({
-            functionCall: {
-              name: call.name,
-              args: call.args || {},
-            },
+        // Registrar la respuesta exacta del modelo en el historial (preservando firmas y tokens internos)
+        const candidateContent = response.candidates?.[0]?.content;
+        if (candidateContent) {
+          contents.push(candidateContent);
+        } else {
+          const modelParts: any[] = [];
+          for (const call of functionCalls) {
+            modelParts.push({
+              functionCall: {
+                name: call.name,
+                args: call.args || {},
+              },
+            });
+          }
+          contents.push({
+            role: 'model',
+            parts: modelParts,
           });
         }
-        contents.push({
-          role: 'model',
-          parts: modelParts,
-        });
 
         // Ejecutar las herramientas solicitadas y registrar las respuestas
         const toolResponseParts: any[] = [];
@@ -167,10 +192,11 @@ Instrucciones de comportamiento:
       toolLogs: executedToolLogs,
     });
   } catch (error: any) {
-    console.error('Error en /api/chat route:', error);
+    console.error('Error en /api/chat route:', error?.message || error, JSON.stringify(error, null, 2));
     return NextResponse.json(
       {
-        error: error?.message || 'Ocurrió un error inesperado al procesar la solicitud.',
+        error: error?.message || 'Error interno del servidor procesando la consulta.',
+        detalles: error?.toString(),
       },
       { status: 500 }
     );

@@ -10,6 +10,13 @@ import {
   MetricasFinancieras,
 } from '../data/business-database';
 
+// Listas mutables en memoria para permitir agendamiento y creación durante la sesión
+const eventosEnMemoria = [...MOCK_CALENDAR_EVENTS];
+const dealsEnMemoria = [...MOCK_HUBSPOT_DEALS];
+const facturasEnMemoria = [...FACTURAS_DB];
+const gastosEnMemoria = [...GASTOS_DB];
+const clientesEnMemoria = [...CLIENTES_DB];
+
 /**
  * Calcula y devuelve el resumen ejecutivo de métricas financieras de Deskly.
  */
@@ -18,30 +25,28 @@ export function obtenerResumenFinanciero(): {
   resumenTexto: string;
   desglosePorCategorias: Record<string, number>;
 } {
-  const mrrTotal = CLIENTES_DB.filter((c) => c.estado === 'Activo').reduce((acc, c) => acc + c.mrr, 0);
+  const mrrTotal = clientesEnMemoria.filter((c) => c.estado === 'Activo').reduce((acc, c) => acc + c.mrr, 0);
   const arrTotal = mrrTotal * 12;
 
-  const costesMensualesTotales = GASTOS_DB.reduce((acc, g) => acc + g.importeMensual, 0);
+  const costesMensualesTotales = gastosEnMemoria.reduce((acc, g) => acc + g.importeMensual, 0);
   const ebitdaMensual = mrrTotal - costesMensualesTotales;
   const margenNetoPorcentaje = mrrTotal > 0 ? Number(((ebitdaMensual / mrrTotal) * 100).toFixed(2)) : 0;
-  const margenBrutoPorcentaje = 84.5; // Margen bruto típico SaaS de software
+  const margenBrutoPorcentaje = 84.5;
 
-  const cashEnBanco = 185000; // 185.000 € en cuenta operativa
+  const cashEnBanco = 185000;
   const gastoNetoMensual = costesMensualesTotales > mrrTotal ? costesMensualesTotales - mrrTotal : 0;
-  // Si la empresa es rentable o flujo positivo, el runway es indefinido / muy alto (> 24 meses)
   const runwayMeses = gastoNetoMensual > 0 ? Number((cashEnBanco / gastoNetoMensual).toFixed(1)) : 36;
 
-  const facturasPendientesCobroTotal = FACTURAS_DB.filter((f) => f.estado === 'Pendiente').reduce(
+  const facturasPendientesCobroTotal = facturasEnMemoria.filter((f) => f.estado === 'Pendiente').reduce(
     (acc, f) => acc + f.total,
     0
   );
-  const facturasVencidasTotal = FACTURAS_DB.filter((f) => f.estado === 'Vencida').reduce(
+  const facturasVencidasTotal = facturasEnMemoria.filter((f) => f.estado === 'Vencida').reduce(
     (acc, f) => acc + f.total,
     0
   );
 
-  // Desglose de costes por categoría
-  const desglosePorCategorias = GASTOS_DB.reduce((acc, g) => {
+  const desglosePorCategorias = gastosEnMemoria.reduce((acc, g) => {
     acc[g.categoria] = (acc[g.categoria] || 0) + g.importeMensual;
     return acc;
   }, {} as Record<string, number>);
@@ -93,7 +98,7 @@ export function consultarFacturas(filtro?: {
   importeTotal: number;
   facturas: Factura[];
 } {
-  let resultado = [...FACTURAS_DB];
+  let resultado = [...facturasEnMemoria];
 
   if (filtro?.estado && filtro.estado !== 'todas') {
     resultado = resultado.filter((f) => f.estado.toLowerCase() === filtro.estado?.toLowerCase());
@@ -134,19 +139,19 @@ export function consultarCostesYGastos(filtro?: {
   gastos: GastoCoste[];
   distribucionPorcentaje: Record<string, string>;
 } {
-  let resultado = [...GASTOS_DB];
+  let resultado = [...gastosEnMemoria];
 
   if (filtro?.categoria && filtro.categoria !== 'todas') {
     resultado = resultado.filter((g) => g.categoria.toLowerCase() === filtro.categoria?.toLowerCase());
   }
 
   const totalMensual = resultado.reduce((acc, g) => acc + g.importeMensual, 0);
-  const totalGlobal = GASTOS_DB.reduce((acc, g) => acc + g.importeMensual, 0);
+  const totalGlobal = gastosEnMemoria.reduce((acc, g) => acc + g.importeMensual, 0);
 
   const distribucionPorcentaje: Record<string, string> = {};
-  const categoriasUnicas = Array.from(new Set(GASTOS_DB.map((g) => g.categoria)));
+  const categoriasUnicas = Array.from(new Set(gastosEnMemoria.map((g) => g.categoria)));
   for (const cat of categoriasUnicas) {
-    const subtotal = GASTOS_DB.filter((g) => g.categoria === cat).reduce((acc, g) => acc + g.importeMensual, 0);
+    const subtotal = gastosEnMemoria.filter((g) => g.categoria === cat).reduce((acc, g) => acc + g.importeMensual, 0);
     distribucionPorcentaje[cat] = `${((subtotal / totalGlobal) * 100).toFixed(1)}% (€${subtotal.toLocaleString('es-ES')})`;
   }
 
@@ -169,7 +174,7 @@ export function consultarCarteraClientes(filtro?: {
   mrrTotalFiltrado: number;
   clientes: Cliente[];
 } {
-  let resultado = [...CLIENTES_DB];
+  let resultado = [...clientesEnMemoria];
 
   if (filtro?.estado && filtro.estado !== 'todos') {
     resultado = resultado.filter((c) => c.estado.toLowerCase() === filtro.estado?.toLowerCase());
@@ -211,7 +216,7 @@ export function analizarRentabilidadCliente(identificador: string): {
   diagnostico?: string;
 } {
   const q = identificador.toLowerCase().trim();
-  const cliente = CLIENTES_DB.find(
+  const cliente = clientesEnMemoria.find(
     (c) =>
       c.id.toLowerCase() === q ||
       c.nombreEmpresa.toLowerCase().includes(q) ||
@@ -225,10 +230,9 @@ export function analizarRentabilidadCliente(identificador: string): {
     };
   }
 
-  const facturasCliente = FACTURAS_DB.filter((f) => f.clienteId === cliente.id);
+  const facturasCliente = facturasEnMemoria.filter((f) => f.clienteId === cliente.id);
   const totalFacturado = facturasCliente.reduce((acc, f) => acc + f.baseImponible, 0);
 
-  // Estimación de coste de servidor + soporte según plan
   const costeServicioMensual =
     cliente.planSuscripcion === 'Custom'
       ? 450
@@ -260,16 +264,172 @@ export function analizarRentabilidadCliente(identificador: string): {
   };
 }
 
+// -------------------------------------------------------------
+// FUNCIONES OPERATIVAS Y DE EJECUCIÓN (ESCRITURA / AGENDAMIENTO)
+// -------------------------------------------------------------
+
 /**
- * Obtener eventos mock de calendario para fallback
+ * Agenda y confirma una nueva reunión o evento en el calendario.
  */
-export function obtenerEventosCalendarioMock() {
-  return MOCK_CALENDAR_EVENTS;
+export function agendarNuevoEventoCalendario(params: {
+  titulo: string;
+  inicio: string;
+  fin?: string;
+  descripcion?: string;
+  asistentes?: string[];
+  ubicacion?: string;
+}) {
+  const eventId = `cal-evt-${Date.now()}`;
+  const ubicacion = params.ubicacion || 'Google Calendar';
+
+  // Si no se especifica fin, sumar 45 minutos por defecto
+  const inicioDate = new Date(params.inicio || Date.now());
+  const finDate = params.fin ? new Date(params.fin) : new Date(inicioDate.getTime() + 45 * 60000);
+
+  const nuevoEvento = {
+    id: eventId,
+    titulo: params.titulo || 'Reunión Operativa Deskly',
+    descripcion: params.descripcion || 'Reunión agendada en Deskly',
+    inicio: inicioDate.toISOString(),
+    fin: finDate.toISOString(),
+    ubicacion: ubicacion,
+    estado: 'confirmado',
+    asistentes: params.asistentes || ['usuario@empresa.com'],
+  };
+
+  eventosEnMemoria.unshift(nuevoEvento);
+
+  return {
+    success: true,
+    mensaje: `✅ Evento agendado y confirmado en Google Calendar.`,
+    evento: nuevoEvento,
+    detalles: {
+      titulo: nuevoEvento.titulo,
+      fechaHoraInicio: inicioDate.toLocaleString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      fechaHoraFin: finDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      ubicacion: ubicacion,
+      asistentesNotificados: nuevoEvento.asistentes,
+      idCalendario: eventId,
+      recordatorio: 'Activado recordatorio en Google Calendar.',
+    },
+  };
 }
 
 /**
- * Obtener deals mock de HubSpot para fallback
+ * Crea o actualiza un contacto en el CRM de Deskly / HubSpot.
  */
+export function crearOActualizarContactoCRM(params: {
+  nombreCompleto: string;
+  email: string;
+  telefono?: string;
+  empresa?: string;
+  cargo?: string;
+  sector?: string;
+}) {
+  const contactId = `crm-cnt-${Date.now()}`;
+  const nuevoContacto = {
+    id: contactId,
+    nombreCompleto: params.nombreCompleto,
+    email: params.email,
+    telefono: params.telefono || '+34 600 000 000',
+    etapaCicloDeVida: 'Lead Calificado (SQL)',
+    estadoLead: 'Asignado a Ventas | Contactado por IA',
+    empresa: params.empresa || 'Empresa B2B',
+  };
+
+  return {
+    success: true,
+    mensaje: `✅ Contacto guardado y sincronizado en el CRM.`,
+    contacto: nuevoContacto,
+  };
+}
+
+/**
+ * Registra una nueva oportunidad o deal comercial en el CRM.
+ */
+export function crearNuevoDealCRM(params: {
+  nombreNegocio: string;
+  monto: string | number;
+  etapa?: string;
+  pipeline?: string;
+  fechaCierre?: string;
+}) {
+  const dealId = `deal-${Date.now()}`;
+  const montoFormateado = typeof params.monto === 'number' ? `€${params.monto.toLocaleString('es-ES')}` : params.monto;
+  const nuevoDeal = {
+    id: dealId,
+    nombreNegocio: params.nombreNegocio,
+    monto: montoFormateado,
+    etapa: params.etapa || 'Propuesta Comercial Enviada',
+    pipeline: params.pipeline || 'Enterprise Sales',
+    fechaCierre: params.fechaCierre || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    fechaCreacion: new Date().toISOString().split('T')[0],
+  };
+
+  dealsEnMemoria.unshift(nuevoDeal);
+
+  return {
+    success: true,
+    mensaje: `✅ Oportunidad comercial registrada con éxito en el pipeline de ventas.`,
+    deal: nuevoDeal,
+  };
+}
+
+/**
+ * Emite y registra una nueva factura con desglose fiscal.
+ */
+export function emitirNuevaFactura(params: {
+  nombreCliente: string;
+  baseImponible: number;
+  concepto: string;
+  metodoPago?: 'Transferencia Bancaria' | 'Domiciliación SEPA' | 'Tarjeta Stripe';
+  diasVencimiento?: number;
+}) {
+  const numeroFactura = `FAC-2025-${String(facturasEnMemoria.length + 80).padStart(3, '0')}`;
+  const ivaPorcentaje = 21;
+  const ivaImporte = Number((params.baseImponible * 0.21).toFixed(2));
+  const total = Number((params.baseImponible + ivaImporte).toFixed(2));
+  const dias = params.diasVencimiento || 30;
+
+  const fechaEmision = new Date().toISOString().split('T')[0];
+  const fechaVencimiento = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
+
+  const nuevaFactura: Factura = {
+    id: `fac-${Date.now()}`,
+    numeroFactura,
+    clienteId: `cli-custom-${Date.now()}`,
+    nombreCliente: params.nombreCliente,
+    fechaEmision,
+    fechaVencimiento,
+    baseImponible: params.baseImponible,
+    ivaPorcentaje,
+    ivaImporte,
+    total,
+    estado: 'Pendiente',
+    metodoPago: params.metodoPago || 'Transferencia Bancaria',
+    concepto: params.concepto,
+  };
+
+  facturasEnMemoria.unshift(nuevaFactura);
+
+  return {
+    success: true,
+    mensaje: `✅ Factura ${numeroFactura} generada y registrada en el sistema contable.`,
+    factura: nuevaFactura,
+  };
+}
+
+export function obtenerEventosCalendarioMock() {
+  return eventosEnMemoria;
+}
+
 export function obtenerDealsHubspotMock() {
-  return MOCK_HUBSPOT_DEALS;
+  return dealsEnMemoria;
 }

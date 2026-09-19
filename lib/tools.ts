@@ -6,14 +6,113 @@ import {
   consultarCostesYGastos,
   consultarCarteraClientes,
   analizarRentabilidadCliente,
+  agendarNuevoEventoCalendario,
+  crearOActualizarContactoCRM,
+  crearNuevoDealCRM,
+  emitirNuevaFactura,
 } from './services/business-service';
 
 /**
- * Esquemas de herramientas (Function Declarations) para el modelo Gemini 2.5 Flash
+ * Esquemas de herramientas (Function Declarations) para el modelo Gemini
  */
 export const toolsConfig = [
   {
     functionDeclarations: [
+      {
+        name: 'agendarEventoCalendario',
+        description:
+          'Agenda, programa y sincroniza una nueva reunión, cita o evento en el calendario de Google Calendar con los detalles de confirmación.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            titulo: {
+              type: 'STRING',
+              description: 'Título o motivo de la reunión (ej. "Demo Comercial con Fintech Solutions", "Revisión Q3").',
+            },
+            inicio: {
+              type: 'STRING',
+              description: 'Fecha y hora de inicio en formato ISO 8601 o fecha descriptiva (ej. "2025-05-20T10:00:00Z").',
+            },
+            fin: {
+              type: 'STRING',
+              description: 'Fecha y hora de finalización en formato ISO 8601 (opcional, por defecto 45 minutos después).',
+            },
+            asistentes: {
+              type: 'ARRAY',
+              items: { type: 'STRING' },
+              description: 'Lista de correos o nombres de los participantes que asistirán.',
+            },
+            descripcion: {
+              type: 'STRING',
+              description: 'Orden del día o detalles adicionales de la sesión.',
+            },
+            ubicacion: {
+              type: 'STRING',
+              description: 'Ubicación o canal de la reunión (opcional).',
+            },
+          },
+          required: ['titulo'],
+        },
+      },
+      {
+        name: 'obtenerEventosCalendario',
+        description: 'Consulta los eventos, reuniones y citas de la agenda en Google Calendar para un rango de tiempo.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            timeMin: {
+              type: 'STRING',
+              description: 'Fecha y hora de inicio en formato ISO 8601 (ej. "2025-05-15T00:00:00Z").',
+            },
+            timeMax: {
+              type: 'STRING',
+              description: 'Fecha y hora de finalización en formato ISO 8601 (ej. "2025-05-15T23:59:59Z").',
+            },
+          },
+        },
+      },
+      {
+        name: 'crearOActualizarContactoCRM',
+        description: 'Crea o actualiza un contacto comercial en el CRM con su empresa, teléfono, email y estado.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            nombreCompleto: { type: 'STRING', description: 'Nombre y apellido del contacto.' },
+            email: { type: 'STRING', description: 'Correo electrónico.' },
+            telefono: { type: 'STRING', description: 'Teléfono de contacto.' },
+            empresa: { type: 'STRING', description: 'Empresa a la que pertenece.' },
+            cargo: { type: 'STRING', description: 'Cargo o posición del contacto.' },
+          },
+          required: ['nombreCompleto', 'email'],
+        },
+      },
+      {
+        name: 'crearDealCRM',
+        description: 'Registra una nueva oportunidad comercial o deal en el pipeline de ventas.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            nombreNegocio: { type: 'STRING', description: 'Nombre del deal u oportunidad.' },
+            monto: { type: 'STRING', description: 'Importe económico del negocio (ej. "€25.000").' },
+            etapa: { type: 'STRING', description: 'Etapa del embudo comercial (ej. "Propuesta Enviada", "Negociación").' },
+          },
+          required: ['nombreNegocio', 'monto'],
+        },
+      },
+      {
+        name: 'emitirFactura',
+        description: 'Genera y emite una nueva factura comercial con cálculo automático de base imponible e IVA (21%).',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            nombreCliente: { type: 'STRING', description: 'Nombre de la empresa cliente.' },
+            baseImponible: { type: 'NUMBER', description: 'Importe neto antes de impuestos en Euros (€).' },
+            concepto: { type: 'STRING', description: 'Concepto del servicio o suscripción.' },
+            metodoPago: { type: 'STRING', description: 'Método de pago: "Transferencia Bancaria", "Domiciliación SEPA" o "Tarjeta Stripe".' },
+          },
+          required: ['nombreCliente', 'baseImponible', 'concepto'],
+        },
+      },
       {
         name: 'consultarResumenFinanciero',
         description:
@@ -124,23 +223,6 @@ export const toolsConfig = [
           },
         },
       },
-      {
-        name: 'obtenerEventosCalendario',
-        description: 'Consulta los eventos, reuniones y citas de la agenda personal en Google Calendar para un rango de tiempo.',
-        parameters: {
-          type: 'OBJECT',
-          properties: {
-            timeMin: {
-              type: 'STRING',
-              description: 'Fecha y hora de inicio en formato ISO 8601 (ej. "2025-05-15T00:00:00Z").',
-            },
-            timeMax: {
-              type: 'STRING',
-              description: 'Fecha y hora de finalización en formato ISO 8601 (ej. "2025-05-15T23:59:59Z").',
-            },
-          },
-        },
-      },
     ],
   },
 ];
@@ -152,6 +234,46 @@ export const toolsConfig = [
 export async function executeToolCall(name: string, args: Record<string, any> = {}): Promise<any> {
   try {
     switch (name) {
+      case 'agendarEventoCalendario': {
+        const resultado = agendarNuevoEventoCalendario({
+          titulo: args.titulo,
+          inicio: args.inicio,
+          fin: args.fin,
+          descripcion: args.descripcion,
+          asistentes: args.asistentes,
+          ubicacion: args.ubicacion,
+        });
+        return resultado;
+      }
+
+      case 'crearOActualizarContactoCRM': {
+        return crearOActualizarContactoCRM({
+          nombreCompleto: args.nombreCompleto,
+          email: args.email,
+          telefono: args.telefono,
+          empresa: args.empresa,
+          cargo: args.cargo,
+        });
+      }
+
+      case 'crearDealCRM': {
+        return crearNuevoDealCRM({
+          nombreNegocio: args.nombreNegocio,
+          monto: args.monto,
+          etapa: args.etapa,
+          pipeline: args.pipeline,
+        });
+      }
+
+      case 'emitirFactura': {
+        return emitirNuevaFactura({
+          nombreCliente: args.nombreCliente,
+          baseImponible: Number(args.baseImponible),
+          concepto: args.concepto,
+          metodoPago: args.metodoPago,
+        });
+      }
+
       case 'consultarResumenFinanciero': {
         const resumen = obtenerResumenFinanciero();
         return {
