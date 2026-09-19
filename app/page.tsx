@@ -247,27 +247,8 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Badges de Integraciones y Botón Limpiar */}
+        {/* Botón Limpiar Chat */}
         <div className="flex items-center gap-2">
-          <div className="hidden lg:flex items-center gap-2 mr-2">
-            <span className="flex items-center gap-1.5 text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-md">
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-              Finanzas & Costes
-            </span>
-            <span className="flex items-center gap-1.5 text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-md">
-              <Users className="h-3.5 w-3.5 text-purple-400" />
-              Clientes ERP
-            </span>
-            <span className="flex items-center gap-1.5 text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-md">
-              <Calendar className="h-3.5 w-3.5 text-blue-400" />
-              Calendar API
-            </span>
-            <span className="flex items-center gap-1.5 text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-md">
-              <Building2 className="h-3.5 w-3.5 text-orange-400" />
-              HubSpot CRM
-            </span>
-          </div>
-
           <button
             onClick={handleClearChat}
             disabled={isLoading}
@@ -275,7 +256,7 @@ export default function ChatPage() {
             title="Reiniciar chat"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Limpiar</span>
+            <span>Limpiar chat</span>
           </button>
         </div>
       </header>
