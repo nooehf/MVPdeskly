@@ -133,5 +133,13 @@ export async function obtenerDealsHubspot(limit: number = 10): Promise<HubspotDe
 
   // Fallback enriquecido con negocios del pipeline de Deskly
   const mockDeals = obtenerDealsHubspotMock();
-  return mockDeals.slice(0, limit);
+  return mockDeals.slice(0, limit).map((deal) => ({
+    id: deal.id,
+    nombreNegocio: deal.dealname,
+    monto: `€${deal.amount}`,
+    etapa: deal.dealstage,
+    pipeline: deal.pipeline,
+    fechaCierre: deal.fechaCierre,
+    fechaCreacion: deal.fechaCreacion,
+  }));
 }

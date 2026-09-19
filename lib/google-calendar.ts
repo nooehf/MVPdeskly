@@ -103,5 +103,13 @@ export async function obtenerEventosCalendario(
 
   // Fallback con eventos de agenda operativa y reuniones de negocio de Deskly
   const mockEvents = obtenerEventosCalendarioMock();
-  return mockEvents;
+  return mockEvents.map((evt) => ({
+    id: evt.id,
+    titulo: evt.summary,
+    descripcion: evt.description,
+    inicio: evt.start?.dateTime || 'Hora no especificada',
+    fin: evt.end?.dateTime || 'Hora no especificada',
+    ubicacion: evt.location || 'Sin ubicación',
+    estado: 'confirmado',
+  }));
 }
