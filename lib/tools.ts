@@ -10,6 +10,7 @@ import {
   crearOActualizarContactoCRM,
   crearNuevoDealCRM,
   emitirNuevaFactura,
+  consultarCatalogoProductos,
 } from './services/business-service';
 
 /**
@@ -211,6 +212,28 @@ export const toolsConfig = [
         },
       },
       {
+        name: 'consultarCatalogoProductos',
+        description:
+          'Consulta el catálogo de productos y servicios que comercializa la empresa a sus clientes, incluyendo precios unitarios, IVA, unidades vendidas, ingresos acumulados, márgenes de beneficio y cuál es el producto estrella más vendido.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            categoria: {
+              type: 'STRING',
+              description: 'Filtrar por categoría (ej. "Servicios Profesionales", "Suscripciones", "Licencias").',
+            },
+            soloMasVendidos: {
+              type: 'BOOLEAN',
+              description: 'Si es true, devuelve prioritariamente el producto más vendido o con mayor facturación.',
+            },
+            busqueda: {
+              type: 'STRING',
+              description: 'Texto o palabra clave para buscar productos o servicios específicos.',
+            },
+          },
+        },
+      },
+      {
         name: 'obtenerDealsHubspot',
         description: 'Obtiene las oportunidades y deals de venta comerciales registrados recientemente en el pipeline.',
         parameters: {
@@ -326,6 +349,14 @@ export async function executeToolCall(name: string, args: Record<string, any> = 
           return { error: 'Debe especificar el nombre o ID del cliente a analizar.' };
         }
         return analizarRentabilidadCliente(identificador);
+      }
+
+      case 'consultarCatalogoProductos': {
+        return consultarCatalogoProductos({
+          categoria: args.categoria,
+          soloMasVendidos: args.soloMasVendidos,
+          busqueda: args.busqueda,
+        });
       }
 
       case 'buscarContactoHubspot': {

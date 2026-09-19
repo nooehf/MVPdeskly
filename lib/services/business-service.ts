@@ -2,11 +2,13 @@ import {
   CLIENTES_DB,
   FACTURAS_DB,
   GASTOS_DB,
+  PRODUCTOS_Y_SERVICIOS,
   MOCK_CALENDAR_EVENTS,
   MOCK_HUBSPOT_DEALS,
   Cliente,
   Factura,
   GastoCoste,
+  ProductoServicio,
   MetricasFinancieras,
 } from '../data/business-database';
 
@@ -16,6 +18,7 @@ const dealsEnMemoria = [...MOCK_HUBSPOT_DEALS];
 const facturasEnMemoria = [...FACTURAS_DB];
 const gastosEnMemoria = [...GASTOS_DB];
 const clientesEnMemoria = [...CLIENTES_DB];
+const productosEnMemoria = [...PRODUCTOS_Y_SERVICIOS];
 
 /**
  * Calcula y devuelve el resumen ejecutivo de métricas financieras de Deskly.
@@ -433,3 +436,52 @@ export function obtenerEventosCalendarioMock() {
 export function obtenerDealsHubspotMock() {
   return dealsEnMemoria;
 }
+
+/**
+  * Consulta el catálogo de productos y servicios que comercializa la empresa.
+  */
+export function consultarCatalogoProductos(params?: {
+  categoria?: string;
+  soloMasVendidos?: boolean;
+  busqueda?: string;
+}) {
+  let resultado = [...productosEnMemoria];
+
+  if (params?.categoria) {
+    resultado = resultado.filter((p) =>
+      p.categoria.toLowerCase().includes(params.categoria!.toLowerCase())
+    );
+  }
+
+  if (params?.soloMasVendidos) {
+    resultado = resultado.filter((p) => p.esMasVendido);
+  }
+
+  if (params?.busqueda) {
+    const q = params.busqueda.toLowerCase();
+    resultado = resultado.filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(q) ||
+        p.descripcion.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q)
+    );
+  }
+
+  const productoEstrella = productosEnMemoria.find((p) => p.esMasVendido) || productosEnMemoria[0];
+
+  return {
+    totalProductos: resultado.length,
+    productoMasVendido: {
+      nombre: productoEstrella.nombre,
+      sku: productoEstrella.sku,
+      precioUnitarioSinIva: `€${productoEstrella.precioUnitario}`,
+      precioConIva: `€${productoEstrella.precioConIva}`,
+      unidadesVendidas: productoEstrella.unidadesVendidasTotal,
+      facturacionAcumulada: `€${productoEstrella.facturacionTotalAcumulada.toLocaleString('es-ES')}`,
+      margen: `${productoEstrella.margenBeneficioPorcentaje}%`,
+      descripcion: productoEstrella.descripcion,
+    },
+    productos: resultado,
+  };
+}
+

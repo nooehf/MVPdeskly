@@ -801,13 +801,107 @@ export const MOCK_HUBSPOT_DEALS = [
     fechaCierre: '2025-05-08',
     fechaCreacion: '2025-04-01',
   },
+];
+
+export interface ProductoServicio {
+  id: string;
+  nombre: string;
+  sku: string;
+  categoria: string;
+  precioUnitario: number; // €
+  precioConIva: number; // € (21%)
+  unidadesVendidasTotal: number;
+  facturacionTotalAcumulada: number; // €
+  margenBeneficioPorcentaje: number; // %
+  esMasVendido: boolean;
+  stockDisponible?: number;
+  descripcion: string;
+}
+
+export const PRODUCTOS_Y_SERVICIOS: ProductoServicio[] = [
   {
-    id: 'deal-005',
-    nombreNegocio: 'Despacho Legal Garrigues & Partners - Plan Custom',
-    monto: '€18,000 / año',
-    etapa: 'Toma de Requisitos / Discovery Call',
-    pipeline: 'Mid-Market Sales',
-    fechaCierre: '2025-07-01',
-    fechaCreacion: '2025-05-10',
+    id: 'prod-001',
+    nombre: 'Aceite de Oliva Virgen Extra Gourmet (Caja 4 Garrafas de 5L)',
+    sku: 'ALM-AOVE-5L4',
+    categoria: 'Aceites y Grasas Vegetales',
+    precioUnitario: 140.0, // €35/garrafa
+    precioConIva: 154.0, // 10% IVA alimentario
+    unidadesVendidasTotal: 1850,
+    facturacionTotalAcumulada: 259000,
+    margenBeneficioPorcentaje: 28.5,
+    esMasVendido: true,
+    stockDisponible: 340,
+    descripcion: 'Nuestro producto estrella más vendido para restaurantes y cadenas hoteleras. AOVE de extracción en frío con acidez < 0.2º, en formato profesional de alta rotación.',
+  },
+  {
+    id: 'prod-002',
+    nombre: 'Jamón Ibérico de Bellota 100% D.O. Guijuelo (Pieza 8 kg)',
+    sku: 'ALM-JAM-IB100',
+    categoria: 'Ibéricos y Embutidos Curados',
+    precioUnitario: 285.0,
+    precioConIva: 313.5,
+    unidadesVendidasTotal: 420,
+    facturacionTotalAcumulada: 119700,
+    margenBeneficioPorcentaje: 34.0,
+    esMasVendido: false,
+    stockDisponible: 65,
+    descripcion: 'Jamón de bellota 100% ibérico con más de 36 meses de curación natural. Producto de gama alta muy demandado por catering y restauración gourmet.',
+  },
+  {
+    id: 'prod-003',
+    nombre: 'Queso Manchego Artesano Curado D.O. (Pieza 3,2 kg)',
+    sku: 'ALM-QUE-MANCH',
+    categoria: 'Lácteos y Quesos',
+    precioUnitario: 46.0,
+    precioConIva: 47.84, // 4% IVA superreducido
+    unidadesVendidasTotal: 980,
+    facturacionTotalAcumulada: 45080,
+    margenBeneficioPorcentaje: 31.5,
+    esMasVendido: false,
+    stockDisponible: 120,
+    descripcion: 'Elaborado con leche cruda de oveja manchega y curación mínima de 9 meses en bodega.',
+  },
+  {
+    id: 'prod-004',
+    nombre: 'Vino Tinto Crianza D.O. Ribera del Duero (Caja 6 botellas 75cl)',
+    sku: 'BEB-VINO-RIB6',
+    categoria: 'Bebidas y Bodega',
+    precioUnitario: 54.0,
+    precioConIva: 65.34, // 21% IVA
+    unidadesVendidasTotal: 1250,
+    facturacionTotalAcumulada: 67500,
+    margenBeneficioPorcentaje: 38.0,
+    esMasVendido: false,
+    stockDisponible: 210,
+    descripcion: '100% Tempranillo con 12 meses en barrica de roble francés y americano. Ideal para cartas de vinos de restaurantes.',
+  },
+  {
+    id: 'prod-005',
+    nombre: 'Lote Gourmet Anchoas del Cantábrico Serie Oro (Caja 12 latas 120g)',
+    sku: 'ALM-CON-ANCH12',
+    categoria: 'Conservas y Salazones',
+    precioUnitario: 78.0,
+    precioConIva: 85.8,
+    unidadesVendidasTotal: 640,
+    facturacionTotalAcumulada: 49920,
+    margenBeneficioPorcentaje: 42.0,
+    esMasVendido: false,
+    stockDisponible: 95,
+    descripcion: 'Anchoas sobadas a mano en aceite de oliva virgen extra. Formato hostelería para aperitivos premium.',
+  },
+  {
+    id: 'prod-006',
+    nombre: 'Arroz Bomba Selección Extra (Saco 25 kg para Hostelería)',
+    sku: 'ALM-ARR-BOMB25',
+    categoria: 'Legumbres, Arroces y Cereales',
+    precioUnitario: 48.0,
+    precioConIva: 49.92,
+    unidadesVendidasTotal: 1100,
+    facturacionTotalAcumulada: 52800,
+    margenBeneficioPorcentaje: 26.0,
+    esMasVendido: false,
+    stockDisponible: 180,
+    descripcion: 'Grano redondo especial para arrocerías y restaurantes. Gran absorción de caldo sin pasarse.',
   },
 ];
+
